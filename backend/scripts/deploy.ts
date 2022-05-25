@@ -1,10 +1,13 @@
 import hre, { ethers } from "hardhat";
 
-async function deployContract(contractName: string) {
+async function deployContract(contract: string) {
   try {
     await hre.run("compile", {
       message: "Compiled successfully",
     });
+
+    // Get constructor arguments if any
+    const { constructorArgs } = require("./constructorArguments.ts");
 
     // Set the provider for localhost
     // const provider = new hre.ethers.providers.JsonRpcProvider("http://localhost:8545");
@@ -19,14 +22,18 @@ async function deployContract(contractName: string) {
     const [wallet] = await ethers.getSigners();
 
     // Deployer info
-    console.log("Deploying contracts with the account:", wallet.address);
+    console.log(
+      `Deploying contract ${contract} with the account: ${wallet.address}`
+    );
 
     // Deploy and create contract instance of a contract using JSON import
     // HOW ???
 
     // Deploy and create contract instance of a contract using hardhat contract factory (if the contract was compiled by Hardhat in the current project)
-    const ContractFactory = await ethers.getContractFactory(contractName);
-    const contractInstance = await ContractFactory.deploy();
+    const ContractFactory = await ethers.getContractFactory(contract);
+    const contractInstance = await ContractFactory.deploy(
+      ...(constructorArgs[contract] || [])
+    );
     await contractInstance.deployed();
 
     // Create contract instance of an already deployed contract using JSON import
@@ -48,7 +55,7 @@ async function deployContract(contractName: string) {
       await contractInstance.deployTransaction.wait(6);
       await hre.run("verify:verify", {
         address: contractInstance.address,
-        constructorArguments: [],
+        constructorArguments: [...(constructorArgs[contract] || [])],
       });
     }
   } catch (error) {

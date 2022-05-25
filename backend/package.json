@@ -1,11 +1,14 @@
 {
   "name": "library-contract-solidity-hardhat",
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "scripts": {
     "test": "npx hardhat test",
-    "deploy:localhost": "npx hardhat deploy --network localhost",
+    "deploy": "npx hardhat deploy --network localhost",
     "deploy:rinkeby": "npx hardhat deploy --network rinkeby",
-    "interact:localhost": "npx hardhat run --network localhost scripts/interact.ts",
-    "interact:rinkeby": "npx hardhat run --network rinkeby scripts/interact.ts"
+    "interact": "npx hardhat run --network localhost scripts/NftMarketplace.interact.ts",
+    "interact:rinkeby": "npx hardhat run --network rinkeby scripts/NftMarketplace.interact.ts"
   },
   "author": "Jan Cibulka",
   "license": "MIT",

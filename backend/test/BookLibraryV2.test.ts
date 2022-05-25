@@ -85,7 +85,7 @@ describe("BookLibraryV2", function () {
 
   it("Should not return book that's not borrowed", async function () {
     const borrowingIndex = 0;
-    expect(
+    await expect(
       bookLibrary.connect(accounts[2]).returnBook(borrowingIndex)
     ).to.be.revertedWith("Sender doesn't have this book.");
   });

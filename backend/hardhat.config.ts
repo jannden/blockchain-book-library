@@ -19,8 +19,10 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
+const defaultContract = "NftMarketplace";
+
 task("deploy", "Deploys contract on a provided network")
-  .addOptionalParam("contract", "The contract to deploy", "BookLibrary")
+  .addOptionalParam("contract", "The contract to deploy", defaultContract)
   .setAction(async ({ contract }) => {
     const deployContract = require("./scripts/deploy.ts");
     await deployContract(contract);
