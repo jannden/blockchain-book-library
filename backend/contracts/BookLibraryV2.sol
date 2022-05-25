@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "../node_modules/@openzeppelin/contracts/access/Ownable.sol";
 
 contract BookLibraryV2 is Ownable {
   struct Book {
@@ -18,10 +18,10 @@ contract BookLibraryV2 is Ownable {
   }
 
   // Events
-  event NewBookAdded(uint id, string name);
-  event NewCopiesAdded(uint id, uint copies);
-  event BookBorrowed(uint indexed id, address borrower);
-  event BookReturned(uint id, address borrower);
+  event NewBookAdded(uint256 id, string name);
+  event NewCopiesAdded(uint256 id, uint256 copies);
+  event BookBorrowed(uint256 indexed id, address borrower);
+  event BookReturned(uint256 id, address borrower);
 
   function addBook(string calldata _name, uint256 _copies) public onlyOwner {
     require(_copies > 0, "Please add at least one copy.");
@@ -40,9 +40,9 @@ contract BookLibraryV2 is Ownable {
 
     // If such book doesn't exist yet, we will add it with all info
     books.push();
-    books[books.length-1].name = _name;
-    books[books.length-1].copies = _copies;
-    emit NewBookAdded(books.length-1, _name);
+    books[books.length - 1].name = _name;
+    books[books.length - 1].copies = _copies;
+    emit NewBookAdded(books.length - 1, _name);
   }
 
   function getAvailableBooks() public view returns (AvailableBook[] memory) {
@@ -67,9 +67,9 @@ contract BookLibraryV2 is Ownable {
     return availableBooks;
   }
 
-  function _hasBook(uint _id, address _user) private view returns(bool) {
+  function _hasBook(uint256 _id, address _user) private view returns (bool) {
     for (uint256 i = 0; i < books[_id].borrowers.length; i++) {
-      if(_user == books[_id].borrowers[i]) {
+      if (_user == books[_id].borrowers[i]) {
         return true;
       }
     }
@@ -86,7 +86,7 @@ contract BookLibraryV2 is Ownable {
       books[_id].copies - books[_id].borrowers.length > 0,
       "No available copies."
     );
-    
+
     // Borrow this book
     books[_id].borrowers.push(msg.sender);
     emit BookBorrowed(_id, msg.sender);
@@ -98,7 +98,7 @@ contract BookLibraryV2 is Ownable {
       "Sender doesn't have this book."
     );
     for (uint256 i = 0; i < books[_id].borrowers.length; i++) {
-      if(msg.sender == books[_id].borrowers[i]) {
+      if (msg.sender == books[_id].borrowers[i]) {
         _removeIndexFromAddressArray(books[_id].borrowers, i);
         emit BookReturned(_id, msg.sender);
         return;
@@ -106,7 +106,10 @@ contract BookLibraryV2 is Ownable {
     }
   }
 
-  function _removeIndexFromAddressArray(address[] storage _array, uint _index) private {
+  function _removeIndexFromAddressArray(
+    address[] storage _array,
+    uint256 _index
+  ) private {
     _array[_index] = _array[_array.length - 1];
     _array.pop();
   }

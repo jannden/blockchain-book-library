@@ -8,7 +8,7 @@ import Head from "next/head";
 import Link from "next/link";
 import Account from "../components/Account";
 import NativeCurrencyBalance from "../components/NativeCurrencyBalance";
-import { ELECTION_ADDRESS, BOOK_LIBRARY_ADDRESS } from "../constants";
+import { ELECTION_ADDRESS, BOOK_LIBRARY_ADDRESS } from "../utils/util";
 import useEagerConnect from "../hooks/useEagerConnect";
 
 function Home() {

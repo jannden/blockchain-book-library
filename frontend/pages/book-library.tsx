@@ -1,6 +1,6 @@
 import Header from "../components/Header";
 import Main from "../components/Main";
-import { BOOK_LIBRARY_ADDRESS  } from "../constants";
+import { BOOK_LIBRARY_ADDRESS } from "../utils/util";
 import BookLibrary from "../components/BookLibrary";
 
 function Home() {
