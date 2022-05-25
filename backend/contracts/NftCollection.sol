@@ -4,24 +4,49 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+
+interface NftMarketplace {
+  function listings(address _nftAddress, uint256 _tokenId)
+    external
+    view
+    returns (uint256);
+
+  function cancelListing(address _nftAddress, uint256 _tokenId) external;
+}
 
 contract NftCollection is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
   using Counters for Counters.Counter;
 
-  Counters.Counter private _tokenIdCounter;
+  Counters.Counter private tokenIdCounter;
 
-  constructor(string memory _name, string memory _symbol)
-    ERC721(_name, _symbol)
-  {}
+  NftMarketplace public marketplace;
 
-  function safeMint(address to, string memory uri) public onlyOwner {
-    uint256 tokenId = _tokenIdCounter.current();
-    _tokenIdCounter.increment();
-    _safeMint(to, tokenId);
-    _setTokenURI(tokenId, uri);
+  constructor(
+    string memory _name,
+    string memory _symbol,
+    address _marketplace
+  ) ERC721(_name, _symbol) {
+    marketplace = NftMarketplace(_marketplace);
+  }
+
+  function safeMint(address _to, string memory _uri) public onlyOwner {
+    uint256 tokenId = tokenIdCounter.current();
+    tokenIdCounter.increment();
+    _safeMint(_to, tokenId);
+    _setTokenURI(tokenId, _uri);
+  }
+
+  function _afterTokenTransfer(
+    address _from,
+    address _to,
+    uint256 _tokenId
+  ) internal virtual override(ERC721) {
+    if (marketplace.listings(address(this), _tokenId) != 0) {
+      marketplace.cancelListing(address(this), _tokenId);
+    }
+    super._afterTokenTransfer(_from, _to, _tokenId);
   }
 
   // The following functions are overrides required by Solidity.
