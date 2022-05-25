@@ -61,19 +61,19 @@ describe("BookLibraryV2", function () {
     const ownerOfToken = await nftCollection.ownerOf(tokenId);
 
     expect(ownerOfToken).to.equal(accounts[actor].address);
-    expect(collection.tokensMinted).to.equal(1);
   });
 
   it("Should not set not-owned token for sale", async function () {
     const collectionId = 0;
     const tokenId = 0;
     const price = ethers.utils.parseEther("1");
+    const fee = ethers.utils.parseEther("0.01");
     const actor = 2;
 
     await expect(
       nftMarketplace
         .connect(accounts[actor])
-        .addMarketItem(collectionId, tokenId, price)
+        .addMarketItem(collectionId, tokenId, price, { value: fee })
     ).to.be.revertedWith("Token not transferred.");
   });
 
@@ -81,12 +81,13 @@ describe("BookLibraryV2", function () {
     const collectionId = 0;
     const tokenId = 0;
     const price = ethers.utils.parseEther("0");
+    const fee = ethers.utils.parseEther("0.01");
     const actor = 1;
 
     await expect(
       nftMarketplace
         .connect(accounts[actor])
-        .addMarketItem(collectionId, tokenId, price)
+        .addMarketItem(collectionId, tokenId, price, { value: fee })
     ).to.be.revertedWith("Price not set.");
   });
 
@@ -95,6 +96,7 @@ describe("BookLibraryV2", function () {
     const tokenId = 0;
     const marketItemId = 0;
     const price = ethers.utils.parseEther("1");
+    const fee = ethers.utils.parseEther("0.01");
     const actor = 1;
 
     // Collection contract
@@ -116,7 +118,7 @@ describe("BookLibraryV2", function () {
     // Listing the item
     const addMarketItem = await nftMarketplace
       .connect(accounts[actor])
-      .addMarketItem(collectionId, tokenId, price);
+      .addMarketItem(collectionId, tokenId, price, { value: fee });
     await addMarketItem.wait();
 
     const marketItem = await nftMarketplace.marketItems(marketItemId);

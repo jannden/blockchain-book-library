@@ -13,12 +13,11 @@ contract NftMarketplace is ERC721Holder, ReentrancyGuard, Ownable {
   using Counters for Counters.Counter;
   Counters.Counter private itemsSold;
 
-  uint256 marketplaceFee = 0.01 ether;
+  uint256 public marketplaceFee = 0.01 ether;
 
   struct Collection {
     address contractAddress;
-    uint256 tokensMinted;
-    address payable owner;
+    address payable owner; // maybe can be deleted
   }
   Collection[] public collections;
 
@@ -43,8 +42,8 @@ contract NftMarketplace is ERC721Holder, ReentrancyGuard, Ownable {
 
   function createCollection(string memory _name, string memory _symbol) public {
     NftCollection c = new NftCollection(_name, _symbol);
-    // c.transferOwnership(msg.sender);
-    collections.push(Collection(address(c), 0, payable(msg.sender)));
+    collections.push(Collection(address(c), payable(msg.sender)));
+    // Emit event for Graph
   }
 
   function mintNftFromCollection(uint256 _collectionId) public {
@@ -56,7 +55,6 @@ contract NftMarketplace is ERC721Holder, ReentrancyGuard, Ownable {
       msg.sender,
       ""
     );
-    collections[_collectionId].tokensMinted++;
   }
 
   function addMarketItem(
