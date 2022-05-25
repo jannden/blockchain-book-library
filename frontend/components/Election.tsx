@@ -4,7 +4,7 @@ import { Contract, ethers } from "ethers";
 import { useEffect, useState } from "react";
 import useElectionContract from "../hooks/useElectionContract";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
-import { Election__factory } from "../contracts/types/factories/Election__factory";
+import * as electionInfo from "../contracts/Election.full.json";
 
 type PropsType = {
   contractAddress: string;
@@ -24,9 +24,9 @@ type InfoType = {
 };
 
 const Election = ({ contractAddress }: PropsType) => {
-  const { chainId } = useWeb3React<Web3Provider>();
-  const electionContract = useElectionContract(contractAddress);
+  const { chainId, library, account } = useWeb3React<Web3Provider>();
 
+  const [dynamicContractAddress, setDynamicContractAddress] = useState<string>(contractAddress);
   const [loading, setLoading] = useState<boolean>(false);
   const [currentLeader, setCurrentLeader] = useState<string>(Leader[0]);
   const [currentSeats, setCurrentSeats] = useState<number[]>([0, 0]);
@@ -36,6 +36,8 @@ const Election = ({ contractAddress }: PropsType) => {
   const [votesCandidate2, setVotesCandidate2] = useState<number | undefined>();
   const [votesCandidate1, setVotesCandidate1] = useState<number | undefined>();
   const [stateSeats, setStateSeats] = useState<number | undefined>();
+
+  const electionContract = useElectionContract(dynamicContractAddress);
 
   useEffect(() => {
     if (electionContract) {
@@ -126,39 +128,14 @@ const Election = ({ contractAddress }: PropsType) => {
   };
 
   const newElectionHandler = async () => {
-    console.log("TO BE IMPLEMENTED");
+    const signer = library.getSigner(account);
+    const factory = new ethers.ContractFactory(electionInfo.abi, electionInfo.bytecode, signer);
 
-    /*
-    const electionFactory = new Election__factory();
-    console.log(electionFactory);
-    const contractInstance = await electionFactory.deploy();
-    await contractInstance.deployed();
-    console.log(contractInstance.address);
-    */
-
-    /*
-    new ethers.ContractFactory(interface, bytecode);
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    const signer = provider.getSigner();
-    console.log(signer)
-    */
-
-    /*
-    // Set the wallet through hardhat.config.ts
-    const [wallet] = await ethers.getSigners();
-
-    // Deployer info
-    console.log("Deploying contracts with the account:", wallet.address);
-
-    // Deploy and create contract instance of a contract using JSON import
-    // HOW ???
-
-    // Deploy and create contract instance of a contract using hardhat contract factory (if the contract was compiled by Hardhat in the current project)
-    const ContractFactory = await ethers.getContractFactory(contractName);
-    const contractInstance = await ContractFactory.deploy();
-    await contractInstance.deployed();
-    */
+    const contract = await factory.deploy();
+    await contract.deployed();
+    console.log(contract);
+    setDynamicContractAddress(contract.address);
+    console.log(`Deployment successful! Contract Address: ${contract.address}`);
   };
 
   const resetForm = () => {
