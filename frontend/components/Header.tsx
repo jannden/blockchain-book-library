@@ -4,21 +4,18 @@ import Account from "./Account";
 import useEagerConnect from "../hooks/useEagerConnect";
 
 function Home() {
-
   const triedToEagerConnect = useEagerConnect();
 
   return (
     <div>
       <Head>
-        <title>LimeAcademy-boilerplate</title>
+        <title>Project</title>
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
       <header>
         <Account triedToEagerConnect={triedToEagerConnect} />
       </header>
-
-
     </div>
   );
 }

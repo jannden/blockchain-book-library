@@ -1,7 +1,7 @@
 import { useWeb3React } from "@web3-react/core";
 import useEagerConnect from "../hooks/useEagerConnect";
 
-function Home({children}) {
+function Home({ children }) {
   const { account, library } = useWeb3React();
 
   const triedToEagerConnect = useEagerConnect();
@@ -10,15 +10,7 @@ function Home({children}) {
 
   return (
     <div>
-      <main>
-        <h1>
-          Welcome to{" "}
-          <a href="https://github.com/LimeChain/next-web3-boilerplate">
-            LimeAcademy-boilerplate
-          </a>
-        </h1>
-        {children}
-      </main>
+      <main>{children}</main>
 
       <style jsx>{`
         main {

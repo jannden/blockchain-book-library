@@ -14,3 +14,10 @@ a {
 * {
   box-sizing: border-box;
 }
+
+.info {
+  color: blue;
+}
+.error {
+  color: red;
+}

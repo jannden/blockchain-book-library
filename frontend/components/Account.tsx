@@ -44,7 +44,7 @@ const Account = ({ triedToEagerConnect }: AccountProps) => {
         <nav>
           <div>
             <Link href="/">
-              <a>LimeAcademy-boilerplate</a>
+              <a>Home</a>
             </Link>
           </div>
           <div>
@@ -108,7 +108,7 @@ const Account = ({ triedToEagerConnect }: AccountProps) => {
       <nav>
         <div>
           <Link href="/">
-            <a>LimeAcademy-boilerplate</a>
+            <a>Home</a>
           </Link>
         </div>
         <div>
