@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
-interface NftMarketplace {
+interface NftMarketplaceInterface {
   function listings(address _nftAddress, uint256 _tokenId)
     external
     view
@@ -21,14 +21,14 @@ contract NftCollection is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
 
   Counters.Counter private tokenIdCounter;
 
-  NftMarketplace public marketplace;
+  NftMarketplaceInterface public marketplace;
 
   constructor(
     string memory _name,
     string memory _symbol,
     address _marketplace
   ) ERC721(_name, _symbol) {
-    marketplace = NftMarketplace(_marketplace);
+    marketplace = NftMarketplaceInterface(_marketplace);
   }
 
   function safeMint(address _to, string memory _uri) public onlyOwner {

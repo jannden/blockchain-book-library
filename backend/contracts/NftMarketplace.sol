@@ -41,7 +41,7 @@ contract NftMarketplace is ERC721Holder, ReentrancyGuard, Ownable {
   event MarketItemSold(uint256 indexed itemId, address owner);
 
   function createCollection(string memory _name, string memory _symbol) public {
-    NftCollection c = new NftCollection(_name, _symbol);
+    NftCollection c = new NftCollection(_name, _symbol, address(this));
     collections.push(Collection(address(c), payable(msg.sender)));
     // Emit event for Graph
   }
