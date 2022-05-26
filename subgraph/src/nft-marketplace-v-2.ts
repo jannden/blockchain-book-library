@@ -3,6 +3,7 @@ import {
   ItemCanceled as ItemCanceledEvent,
   ItemListed as ItemListedEvent,
 } from "../generated/NftMarketplaceV2/NftMarketplaceV2";
+import { NftCollection } from "../generated/NftCollection/NftCollection";
 import { ItemBought, ItemCanceled, ItemListed } from "../generated/schema";
 
 export function handleItemBought(event: ItemBoughtEvent): void {
@@ -13,6 +14,10 @@ export function handleItemBought(event: ItemBoughtEvent): void {
   entity.nftAddress = event.params.nftAddress;
   entity.tokenId = event.params.tokenId;
   entity.price = event.params.price;
+  entity.timestamp = event.block.timestamp;
+  let nftCollection = NftCollection.bind(event.params.nftAddress);
+  entity.owner = nftCollection.ownerOf(event.params.tokenId);
+  entity.nftUri = nftCollection.tokenURI(event.params.tokenId);
   entity.save();
 }
 
@@ -23,6 +28,10 @@ export function handleItemCanceled(event: ItemCanceledEvent): void {
   entity.seller = event.params.seller;
   entity.nftAddress = event.params.nftAddress;
   entity.tokenId = event.params.tokenId;
+  entity.timestamp = event.block.timestamp;
+  let nftCollection = NftCollection.bind(event.params.nftAddress);
+  entity.owner = nftCollection.ownerOf(event.params.tokenId);
+  entity.nftUri = nftCollection.tokenURI(event.params.tokenId);
   entity.save();
 }
 
@@ -34,5 +43,9 @@ export function handleItemListed(event: ItemListedEvent): void {
   entity.nftAddress = event.params.nftAddress;
   entity.tokenId = event.params.tokenId;
   entity.price = event.params.price;
+  entity.timestamp = event.block.timestamp;
+  let nftCollection = NftCollection.bind(event.params.nftAddress);
+  entity.owner = nftCollection.ownerOf(event.params.tokenId);
+  entity.nftUri = nftCollection.tokenURI(event.params.tokenId);
   entity.save();
 }

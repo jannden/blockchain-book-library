@@ -4,6 +4,9 @@ type ItemBought @entity {
   nftAddress: Bytes! # address
   tokenId: BigInt! # uint256
   price: BigInt! # uint256
+  timestamp: BigInt! # uint256
+  owner: Bytes! # address
+  nftUri: String!
 }
 
 type ItemCanceled @entity {
@@ -11,6 +14,9 @@ type ItemCanceled @entity {
   seller: Bytes! # address
   nftAddress: Bytes! # address
   tokenId: BigInt! # uint256
+  timestamp: BigInt! # uint256
+  owner: Bytes! # address
+  nftUri: String!
 }
 
 type ItemListed @entity {
@@ -19,4 +25,21 @@ type ItemListed @entity {
   nftAddress: Bytes! # address
   tokenId: BigInt! # uint256
   price: BigInt! # uint256
+  timestamp: BigInt! # uint256
+  owner: Bytes! # address
+  nftUri: String!
+}
+
+type Transfer @entity {
+  id: ID!
+  from: Bytes! # address
+  to: Bytes! # address
+  tokenId: BigInt! # uint256
+}
+
+type Approval @entity {
+  id: ID!
+  owner: Bytes! # address
+  approved: Bytes! # address
+  tokenId: BigInt! # uint256
 }
