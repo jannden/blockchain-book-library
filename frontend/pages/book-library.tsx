@@ -6,12 +6,9 @@ import useBookLibraryContract from "../hooks/useBookLibraryContract";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
 import { deployedBookLibrary } from "../utils/deployedContracts";
 
-type PropsType = {
-  contractAddress: string;
-};
 type AvailableBooks = {
   id: BigNumber;
-  book: string;
+  name: string;
 };
 type InfoType = {
   error?: string;
@@ -65,7 +62,7 @@ const BookLibrary = () => {
       getAvailableBooks();
     } catch (error) {
       // Solidity errors returned by required statements have the syntax error.error.message
-      setInfo({ error: error.error?.message || error.errorArgs[0] || error.message });
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {
       setLoading(false);
@@ -87,7 +84,7 @@ const BookLibrary = () => {
       getAvailableBooks();
     } catch (error) {
       // Solidity errors returned by required statements have the syntax error.error.message
-      setInfo({ error: error.error?.message || error.errorArgs[0] || error.message });
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {
       setLoading(false);
@@ -109,7 +106,7 @@ const BookLibrary = () => {
       getAvailableBooks();
     } catch (error) {
       // Solidity errors returned by required statements have the syntax error.error.message
-      setInfo({ error: error.error?.message || error.errorArgs[0] || error.message });
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {
       setLoading(false);
@@ -118,11 +115,12 @@ const BookLibrary = () => {
   const getAllBorrowers = async () => {
     try {
       setInfo({});
-      const result = await bookLibraryContract.getAllBorrowers(bookId);
-      setAllBorrowers(result);
+      let eventFilter = bookLibraryContract.filters.BookBorrowed(Number(bookId), null);
+      let events = await bookLibraryContract.queryFilter(eventFilter);
+      setAllBorrowers(events.map((item) => item.args?.borrower));
     } catch (error) {
       // Solidity errors returned by required statements have the syntax error.error.message
-      setInfo({ error: error.error?.message || error.errorArgs[0] || error.message });
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {
       setLoading(false);
@@ -182,7 +180,7 @@ const BookLibrary = () => {
           {availableBooks.length > 0
             ? availableBooks.map((item) => (
                 <div className="book" key={item.id.toString()}>
-                  {item.book}, id: {item.id.toString()}
+                  {item.name}, id: {item.id.toString()}
                 </div>
               ))
             : "No books available"}

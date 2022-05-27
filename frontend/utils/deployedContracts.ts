@@ -6,12 +6,12 @@ export const deployedElection = {
 
 export const deployedBookLibrary = {
   name: "BookLibraryV2",
-  address: "0xe1CF3CFdaeE67Cfbc4f3E4898a4B832EE425427F"
+  address: "0x390A5BF956b0De554CabF96F242AE8609929926c"
 }
 
 export const deployedNftMarketplace = {
   name: "NftMarketplaceV2",
-  address: "0xd5fD20ee4Adc3c0A13f68800266c0b0687EBA0a0"
+  address: "0xec8440822A946dDaA17381Ba99385711dE28b1EC"
 }
 
 export const deployedNftCollection = {

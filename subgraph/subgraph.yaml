@@ -17,6 +17,7 @@ dataSources:
         - ItemBought
         - ItemCanceled
         - ItemListed
+        - CollectionAdded
       abis:
         - name: NftMarketplaceV2
           file: ./abis/NftMarketplaceV2.json
@@ -29,28 +30,6 @@ dataSources:
           handler: handleItemCanceled
         - event: ItemListed(indexed address,indexed address,indexed uint256,uint256)
           handler: handleItemListed
+        - event: CollectionAdded(indexed address,indexed address)
+          handler: handleCollectionAdded
       file: ./src/nft-marketplace-v-2.ts
-
-  - kind: ethereum
-    name: NftCollection
-    network: rinkeby
-    source:
-      address: "0xBb6BD32a7ea213f953850282D09E64A65d8e3CF4"
-      abi: NftCollection
-      startBlock: 10739645
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.5
-      language: wasm/assemblyscript
-      entities:
-        - Transfer
-        - Approval
-      abis:
-        - name: NftCollection
-          file: ./abis/NftCollection.json
-      eventHandlers:
-        - event: Transfer(indexed address,indexed address,indexed uint256)
-          handler: handleTransfer
-        - event: Approval(indexed address,indexed address,indexed uint256)
-          handler: handleApproval
-      file: ./src/nft-collection.ts

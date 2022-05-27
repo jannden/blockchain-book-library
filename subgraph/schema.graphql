@@ -30,16 +30,9 @@ type ItemListed @entity {
   nftUri: String!
 }
 
-type Transfer @entity {
+type CollectionAdded @entity {
   id: ID!
-  from: Bytes! # address
-  to: Bytes! # address
-  tokenId: BigInt! # uint256
-}
-
-type Approval @entity {
-  id: ID!
-  owner: Bytes! # address
-  approved: Bytes! # address
-  tokenId: BigInt! # uint256
+  deployer: Bytes! # address
+  nftAddress: Bytes! # address
+  timestamp: BigInt! # uint256
 }

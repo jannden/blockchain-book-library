@@ -28,6 +28,8 @@ contract NftMarketplaceV2 is ReentrancyGuard {
     uint256 price
   );
 
+  event CollectionAdded(address indexed deployer, address indexed nftAddress);
+
   /////////////////////
   //     Storage     //
   /////////////////////
@@ -37,6 +39,9 @@ contract NftMarketplaceV2 is ReentrancyGuard {
 
   /// @notice UserAddress -> Funds
   mapping(address => uint256) private funds;
+
+  /// @notice UserAddress -> Deployed NFT contract addresses
+  mapping(address => address[]) public nfts;
 
   /////////////////////
   //    Modifiers    //
@@ -133,6 +138,17 @@ contract NftMarketplaceV2 is ReentrancyGuard {
       _tokenId,
       listings[_nftAddress][_tokenId]
     );
+  }
+
+  /// @notice Method for storing addresses of NFT contracts deployed by users
+  function addCollection(address _nftAddress) external {
+    for (uint256 i = 0; i < nfts[msg.sender].length; i++) {
+      if (nfts[msg.sender][i] == _nftAddress) {
+        revert("Collection already exists");
+      }
+    }
+    nfts[msg.sender].push(_nftAddress);
+    emit CollectionAdded(msg.sender, _nftAddress);
   }
 
   /// @notice Method for withdrawing earned funds

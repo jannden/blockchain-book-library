@@ -4,7 +4,7 @@ import { ethers } from "ethers";
 import { useEffect, useState } from "react";
 import useElectionContract from "../hooks/useElectionContract";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
-import * as electionInfo from "../contracts/Election.full.json";
+import electionFactory from "../contracts/Election.json";
 import { deployedElection } from "../utils/deployedContracts";
 
 export enum Leader {
@@ -128,7 +128,11 @@ const Election = () => {
 
   const newElectionHandler = async () => {
     const signer = library.getSigner(account);
-    const factory = new ethers.ContractFactory(electionInfo.abi, electionInfo.bytecode, signer);
+    const factory = new ethers.ContractFactory(
+      electionFactory.abi,
+      electionFactory.bytecode,
+      signer
+    );
 
     const contract = await factory.deploy();
     await contract.deployed();
