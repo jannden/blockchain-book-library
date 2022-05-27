@@ -1,14 +1,16 @@
 import type { JsonRpcSigner, Web3Provider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
+import Grid from "@mui/material/Grid";
+import Paper from "@mui/material/Paper";
 import { BigNumber, ContractFactory, ethers } from "ethers";
 import { useEffect, useState, useRef } from "react";
 import nftCollectionFactory from "../contracts/NftCollection.json";
 import { createClient } from "urql";
 import { deployedNftMarketplace } from "../utils/deployedContracts";
 import useNftMarketplaceContract from "../hooks/useNftMarketplaceContract";
-import useNftCollectionContract from "../hooks/useNftCollectionContract";
 import { create as createIpsf, CID, IPFSHTTPClient } from "ipfs-http-client";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
+import Button from "@mui/material/Button";
 
 const ipfs: IPFSHTTPClient = createIpsf({
   url: "https://ipfs.infura.io:5001",
@@ -33,7 +35,7 @@ const useGraph = () => {
         price
         timestamp
         owner
-        nftUri
+        tokenUri
       }
       itemCanceleds {
         id
@@ -42,7 +44,7 @@ const useGraph = () => {
         tokenId
         timestamp
         owner
-        nftUri
+        tokenUri
       }
       itemBoughts {
         id
@@ -52,7 +54,7 @@ const useGraph = () => {
         price
         timestamp
         owner
-        nftUri
+        tokenUri
       }
       collectionAddeds {
         id
@@ -74,13 +76,19 @@ const useGraph = () => {
 
       // Get items currently listed in the marketplace for purchase
       const mergedFilter = [...itemCanceleds, ...itemBoughts];
-      const currentlyListedItems = itemListeds.filter((el: any) => {
-        return !mergedFilter.some((f) => {
-          return (
-            f.nftAddress === el.nftAddress && f.tokenId === el.tokenId && f.timestamp > el.timestamp
-          );
-        });
-      });
+      const currentlyListedItems = removeDuplicates(
+        itemListeds.filter((el: any) => {
+          return !mergedFilter.some((f) => {
+            return (
+              f.nftAddress === el.nftAddress &&
+              f.tokenId === el.tokenId &&
+              f.timestamp > el.timestamp
+            );
+          });
+        }),
+        "nftAddress",
+        "tokenId"
+      );
 
       /*
        * Get items owned by the user grouped by NFT collections
@@ -91,15 +99,18 @@ const useGraph = () => {
        * the marketplace events.
        */
       const mergedMarketplace = [...itemListeds, ...itemCanceleds, ...itemBoughts];
-      const mergedMarketplaceWithoutDuplicates = mergedMarketplace.filter(
-        (thing, index, self) =>
-          self.findIndex(
-            (t) => t.tokenId === thing.tokenId && t.nftAddress === thing.nftAddress
-          ) === index
+      const mergedMarketplaceWithoutDuplicates = removeDuplicates(
+        mergedMarketplace,
+        "nftAddress",
+        "tokenId"
       );
-      const ownedByUserEverListed = mergedMarketplaceWithoutDuplicates.filter(
-        (token) => token.owner == account.toLowerCase()
-      );
+      const ownedByUserEverListed = mergedMarketplaceWithoutDuplicates
+        .filter((token) => token.owner == account.toLowerCase())
+        .map((token) => ({
+          nftAddress: token.nftAddress,
+          tokenId: token.tokenId,
+          tokenUri: token.tokenUri,
+        }));
       const userItems = [...ownedByUserEverListed];
       const userCollections = collectionAddeds.filter(
         (token) => token.deployer == account.toLowerCase()
@@ -122,13 +133,37 @@ const useGraph = () => {
         }
       }
 
-      setData({ currentlyListedItems, userItems, userCollections });
+      setData({
+        currentlyListedItems: groupBy(currentlyListedItems, "nftAddress"),
+        userItems: groupBy(userItems, "nftAddress"),
+        userCollections,
+      });
     }
     if (account) {
       fetchGraph();
     }
   }, [account, graphQuery, library]);
   return data;
+};
+
+const groupBy = (items, key) => {
+  const groupedObject = items.reduce(
+    (result, item) => ({
+      ...result,
+      [item[key]]: [...(result[item[key]] || []), item],
+    }),
+    {}
+  );
+  return groupedObject;
+};
+
+const removeDuplicates = (arrayOfObjects, uniqueKey1, uniqueKey2) => {
+  return arrayOfObjects.filter(
+    (thing, index, self) =>
+      self.findIndex(
+        (t) => t[uniqueKey1] === thing[uniqueKey1] && t[uniqueKey2] === thing[uniqueKey2]
+      ) === index
+  );
 };
 
 const getCollectionContract = async (
@@ -327,121 +362,142 @@ const Marketplace = () => {
     }
   };
   return (
-    <>
-      <h1>Marketplace</h1>
-      <div>
-        {info.info && <div className="info">{info.info}</div>}
-        {info.link && info.hash && (
-          <div>
-            <a href={info.link}>{info.hash}</a>
-          </div>
-        )}
-        {info.error && <div className="error">{info.error}</div>}
+    <Grid container spacing={3}>
+      {/* Chart */}
+      <Grid item xs={12} md={8} lg={9}>
+        <Paper
+          sx={{
+            p: 2,
+            display: "flex",
+            flexDirection: "column",
+            height: 240,
+          }}
+        ></Paper>
+      </Grid>
+      {/* Recent Deposits */}
+      <Grid item xs={12} md={4} lg={3}>
+        <Paper
+          sx={{
+            p: 2,
+            display: "flex",
+            flexDirection: "column",
+            height: 240,
+          }}
+        ></Paper>
+      </Grid>
+      {/* Recent Orders */}
+      <Grid item xs={12}>
+        <Paper sx={{ p: 2, display: "flex", flexDirection: "column" }}></Paper>
+      </Grid>
+
+      {info.info && <div className="info">{info.info}</div>}
+      {info.link && info.hash && (
         <div>
-          <h4>Create NFT Collection</h4>
-          <label>
-            NFT Collection Name
-            <input type="text" name="nftName" onChange={inputHandler} value={inputs.nftName} />
-          </label>
-          <label>
-            NFT Collection Symbol
-            <input type="text" name="nftSymbol" onChange={inputHandler} value={inputs.nftSymbol} />
-          </label>
-          <button onClick={deployCollection}>Deploy Collection</button>
-          <h4>Mint a new token</h4>
-          <label>
-            Token Image
-            <input type="file" ref={tokenImage} />
-          </label>
-          <label>
-            NFT Collection Address
-            <input
-              type="text"
-              name="nftAddress"
-              onChange={inputHandler}
-              value={inputs.nftAddress}
-            />
-          </label>
-          <button type="button" onClick={mintToken}>
-            Mint NFT
-          </button>
-          {!ipfs && <p>Oh oh, Not connected to IPFS. Checkout out the logs for errors</p>}
-          <h4>Owned tokens grouped by NFT collections (Minted + Bought / Listed + Not Listed)</h4>
-          {userItems &&
-            userItems.map((item, index) => (
-              <p key={index}>
-                {item.tokenUri}
-                <br />
-                {item.tokenId}
-                <br />
-                {item.nftAddress}
-                <br />
-                ----------------
-              </p>
-            ))}
-          <h4>User collections</h4>
-          {userCollections &&
-            userCollections.map((item, index) => (
-              <p key={index}>
-                {item.nftAddress}
-                <br />
-                ----------------
-              </p>
-            ))}
-          <h4>Add token to the marketplace</h4>
-          <label>
-            NFT Collection Address
-            <input
-              type="text"
-              name="nftAddress"
-              onChange={inputHandler}
-              value={inputs.nftAddress}
-            />
-          </label>
-          <label>
-            Token Id
-            <input type="text" name="tokenId" onChange={inputHandler} value={inputs.tokenId} />
-          </label>
-          <label>
-            Price
-            <input type="text" name="price" onChange={inputHandler} value={inputs.price} />
-          </label>
-          <button type="button" onClick={listItem}>
-            List item
-          </button>
-          <h4>Remove token from the marketplace</h4>
-          <label>
-            NFT Collection Address
-            <input
-              type="text"
-              name="nftAddress"
-              onChange={inputHandler}
-              value={inputs.nftAddress}
-            />
-          </label>
-          <label>
-            Token Id
-            <input type="text" name="tokenId" onChange={inputHandler} value={inputs.tokenId} />
-          </label>
-          <button type="button" onClick={cancelListing}>
-            Cancel listing
-          </button>
-          <h4>Tokens for sale (with option to buy)</h4>
-          {currentlyListedItems &&
-            currentlyListedItems.map((item, index) => (
-              <p key={index}>
-                {item.tokenUri}
-                <br />
-                {item.tokenId}
-                <br />
-                {item.nftAddress}
-                <br />
-                ----------------
-              </p>
-            ))}
+          <a href={info.link}>{info.hash}</a>
         </div>
+      )}
+      {info.error && <div className="error">{info.error}</div>}
+      <div>
+        <h4>Create NFT Collection</h4>
+        <label>
+          NFT Collection Name
+          <input type="text" name="nftName" onChange={inputHandler} value={inputs.nftName} />
+        </label>
+        <label>
+          NFT Collection Symbol
+          <input type="text" name="nftSymbol" onChange={inputHandler} value={inputs.nftSymbol} />
+        </label>
+        <button onClick={deployCollection}>Deploy Collection</button>
+        <h4>Mint a new token</h4>
+        <label>
+          Token Image
+          <input type="file" ref={tokenImage} />
+        </label>
+        <label>
+          NFT Collection Address
+          <input type="text" name="nftAddress" onChange={inputHandler} value={inputs.nftAddress} />
+        </label>
+        <Button variant="contained" onClick={mintToken}>
+          Mint NFT
+        </Button>
+        {!ipfs && <p>Oh oh, Not connected to IPFS. Checkout out the logs for errors</p>}
+        <h4>Owned tokens grouped by NFT collections (Minted + Bought / Listed + Not Listed)</h4>
+        {userItems &&
+          Object.keys(userItems).map((key, index) => (
+            <div key={index}>
+              nftAddress: {key}
+              {console.log(key, userItems)}
+              {userItems[key].map((token, index2) => (
+                <p key={index2}>
+                  {token.tokenUri}
+                  <br />
+                  {token.tokenId}
+                  <br />
+                  ******
+                </p>
+              ))}
+              ||||||||||||||||||||||||||||||||||||||||||||||||||
+            </div>
+          ))}
+        <h4>User collections</h4>
+        {userCollections &&
+          userCollections.map((item, index) => (
+            <p key={index}>
+              {item.nftAddress}
+              <br />
+              ----------------
+            </p>
+          ))}
+        <h4>Add token to the marketplace</h4>
+        <label>
+          NFT Collection Address
+          <input type="text" name="nftAddress" onChange={inputHandler} value={inputs.nftAddress} />
+        </label>
+        <label>
+          Token Id
+          <input type="text" name="tokenId" onChange={inputHandler} value={inputs.tokenId} />
+        </label>
+        <label>
+          Price
+          <input type="text" name="price" onChange={inputHandler} value={inputs.price} />
+        </label>
+        <button type="button" onClick={listItem}>
+          List item
+        </button>
+        <h4>Remove token from the marketplace</h4>
+        <label>
+          NFT Collection Address
+          <input type="text" name="nftAddress" onChange={inputHandler} value={inputs.nftAddress} />
+        </label>
+        <label>
+          Token Id
+          <input type="text" name="tokenId" onChange={inputHandler} value={inputs.tokenId} />
+        </label>
+        <button type="button" onClick={cancelListing}>
+          Cancel listing
+        </button>
+        <h4>Tokens for sale (with option to buy)</h4>
+        {currentlyListedItems &&
+          Object.keys(currentlyListedItems).map((key, index) => (
+            <div key={index}>
+              nftAddress: {key}
+              {console.log(key, currentlyListedItems)}
+              {currentlyListedItems[key].map((token, index2) => (
+                <p key={index2}>
+                  {token.tokenUri}
+                  <br />
+                  {token.tokenId}
+                  <br />
+                  {token.price}
+                  <br />
+                  ******
+                </p>
+              ))}
+              ||||||||||||||||||||||||||||||||||||||||||||||||||
+            </div>
+          ))}
       </div>
-    </>
+    </Grid>
   );
 };
 
