@@ -4,6 +4,10 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
+interface IERC721Ownable is IERC1155 {
+  function owner() external returns (address);
+}
+
 contract NftMarketplaceV2 is ReentrancyGuard {
   /////////////////////
   //     Events      //
@@ -142,6 +146,10 @@ contract NftMarketplaceV2 is ReentrancyGuard {
 
   /// @notice Method for storing addresses of NFT contracts deployed by users
   function addCollection(address _nftAddress) external {
+    require(
+      msg.sender == IERC721Ownable(_nftAddress).owner(),
+      "Only collection owner can add it."
+    );
     for (uint256 i = 0; i < nfts[msg.sender].length; i++) {
       if (nfts[msg.sender][i] == _nftAddress) {
         revert("Collection already exists");

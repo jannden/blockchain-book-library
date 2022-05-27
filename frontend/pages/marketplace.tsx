@@ -1,20 +1,25 @@
-import type { Web3Provider } from "@ethersproject/providers";
+import type { JsonRpcSigner, Web3Provider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
-import { ethers } from "ethers";
+import { ContractFactory, ethers } from "ethers";
 import { useEffect, useState, useRef } from "react";
 import nftCollectionFactory from "../contracts/NftCollection.json";
 import { createClient } from "urql";
-import { deployedNftMarketplace, deployedNftCollection } from "../utils/deployedContracts";
+import { deployedNftMarketplace } from "../utils/deployedContracts";
 import useNftMarketplaceContract from "../hooks/useNftMarketplaceContract";
 import useNftCollectionContract from "../hooks/useNftCollectionContract";
 import { create as createIpsf, CID, IPFSHTTPClient } from "ipfs-http-client";
+import { formatEtherscanLink, shortenHex } from "../utils/util";
 
 const ipfs: IPFSHTTPClient = createIpsf({
   url: "https://ipfs.infura.io:5001",
 });
 
-const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v0.5";
-const graphQuery = `
+const useGraph = () => {
+  const { library, account } = useWeb3React<Web3Provider>();
+  const [data, setData] = useState([]);
+
+  const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v0.5";
+  const graphQuery = `
       query {
       itemListeds {
         id
@@ -45,8 +50,98 @@ const graphQuery = `
         owner
         nftUri
       }
+      collectionAddeds {
+        id
+        deployer
+        nftAddress
+        timestamp
+      }
     }
   `;
+
+  useEffect(() => {
+    async function fetchGraph() {
+      // Create connection to the Graph
+      const client = createClient({ url: graphUrl });
+
+      // Extract data
+      const data = await client.query(graphQuery).toPromise();
+      const { itemListeds, itemCanceleds, itemBoughts, collectionAddeds } = data.data;
+
+      // Get items currently listed in the marketplace for purchase
+      const mergedFilter = [...itemCanceleds, ...itemBoughts];
+      const currentlyListedItems = itemListeds.filter((el: any) => {
+        return !mergedFilter.some((f) => {
+          return (
+            f.nftAddress === el.nftAddress && f.tokenId === el.tokenId && f.timestamp > el.timestamp
+          );
+        });
+      });
+      console.log("currentlyListedItems", currentlyListedItems);
+
+      /*
+       * Get items owned by the user grouped by NFT collections
+       * (Minted + Bought / Listed + Not Listed)
+       * Not listed minted tokens can be accessed by iterating over all user collections calling
+       * balanceOf() and then tokenOfOwnerByIndex(). Any tokens that are owned by the user and
+       * have ever been listed on the marketplace can be omitted, as they will be fetched from
+       * the marketplace events.
+       */
+      const mergedMarketplace = [...itemListeds, ...itemCanceleds, ...itemBoughts];
+      const ownedByUserEverListed = mergedMarketplace.filter((token) => token.owner == account);
+      console.log("ownedByUserEverListed", ownedByUserEverListed);
+      const allOwned = [...ownedByUserEverListed];
+      const userCollections = collectionAddeds.filter((token) => token.deployer == account);
+      console.log("userCollections", userCollections);
+      for (const collection of userCollections) {
+        const signer = library.getSigner(account);
+        const contract = await getCollectionContract(signer, collection.nftAddress, null);
+        const tokenCount = await contract.balanceOf(account);
+        for (let i = 0; i < tokenCount; i++) {
+          const tokenId = await contract.tokenOfOwnerByIndex(i);
+          if (
+            mergedMarketplace.some(
+              (token) => token.nftAddress == collection.nftAddress && token.tokenId == tokenId
+            )
+          ) {
+            continue;
+          }
+          const tokenUri = await contract.tokenURI(tokenId);
+          allOwned.push({ tokenId, tokenUri });
+        }
+      }
+      // Remove duplicates
+      const allOwnedCleaned = allOwned.filter(
+        (thing, index, self) =>
+          self.findIndex(
+            (t) => t.tokenId === thing.tokenId && t.nftCollection === thing.nftCollection
+          ) === index
+      );
+      setData(currentlyListedItems);
+    }
+    fetchGraph();
+  }, [account, graphQuery, library]);
+  return data;
+};
+
+const getCollectionContract = async (
+  signer: JsonRpcSigner,
+  contractAddress?: string,
+  args?: any[]
+): Promise<ethers.Contract> => {
+  const Factory = new ethers.ContractFactory(
+    nftCollectionFactory.abi,
+    nftCollectionFactory.bytecode,
+    signer
+  );
+  if (contractAddress) {
+    const contract = Factory.attach(contractAddress);
+    return contract;
+  }
+  const contract = await Factory.deploy(...(args || []));
+  await contract.deployed();
+  return contract;
+};
 
 type InfoType = {
   error?: string;
@@ -56,90 +151,84 @@ type InfoType = {
 };
 
 type Inputs = {
-  nftName: string | undefined;
-  nftSymbol: string | undefined;
-  nftAddress: string | undefined;
+  nftName: string;
+  nftSymbol: string;
+  nftAddress: string;
 };
 
 const defaultInputs: Inputs = {
-  nftName: undefined,
-  nftSymbol: undefined,
-  nftAddress: undefined,
+  nftName: "",
+  nftSymbol: "",
+  nftAddress: "",
 };
 
 const Marketplace = () => {
   const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
-  const nftCollectionContract = useNftCollectionContract(deployedNftCollection.address);
-  const { library, account } = useWeb3React<Web3Provider>();
+  const { library, account, chainId } = useWeb3React<Web3Provider>();
+  const graphResult = useGraph();
 
   const [loading, setLoading] = useState<boolean>(false);
   const [info, setInfo] = useState<InfoType>({});
 
   const [inputs, setInputs] = useState<Inputs>(defaultInputs);
-  const nftImage = useRef(null);
+  const tokenImage = useRef(null);
 
-  async function fetchData() {
-    const client = createClient({ url: graphUrl });
-    const data = await client.query(graphQuery).toPromise();
-    const { itemListeds, itemCanceleds, itemBoughts } = data.data;
-    const mergedFilter = [...itemCanceleds, ...itemBoughts];
-    const currentItems = itemListeds.filter((el: any) => {
-      return !mergedFilter.some((f) => {
-        return (
-          f.nftAddress === el.nftAddress && f.tokenId === el.tokenId && f.timestamp > el.timestamp
-        );
-      });
-    });
-    console.log(currentItems);
-  }
   useEffect(() => {
-    console.log("Fetching");
-    fetchData();
-    console.log("Fetching");
-  }, []);
+    console.log("graphResult", graphResult);
+  }, [graphResult]);
 
   const inputHandler = (e) => {
     e.preventDefault();
     switch (e.target.name) {
       case "nftName":
         setInputs((inputs) => ({ ...inputs, nftName: e.target.value }));
+        break;
       case "nftSymbol":
         setInputs((inputs) => ({ ...inputs, nftSymbol: e.target.value }));
+        break;
       case "nftAddress":
         setInputs((inputs) => ({ ...inputs, nftAddress: e.target.value }));
+        break;
     }
   };
 
+  /////////////////////
+  //Deploy Collection//
+  /////////////////////
+
   const deployCollection = async () => {
+    // Checking user input
     if (!inputs.nftName || !inputs.nftSymbol) {
       return alert("Fill out the fields.");
     }
 
-    // Preparing the contract factory
+    // Preparing the contract
     const signer = library.getSigner(account);
-    const factory = new ethers.ContractFactory(
-      nftCollectionFactory.abi,
-      nftCollectionFactory.bytecode,
-      signer
-    );
-
-    // Deploying a new NFT collection contract
-    const contract = await factory.deploy(
+    const contract = await getCollectionContract(signer, null, [
       inputs.nftName,
       inputs.nftSymbol,
-      deployedNftMarketplace.address
-    );
-    await contract.deployed();
+      deployedNftMarketplace.address,
+    ]);
 
-    // Storing the info in the Marketplace contract
-    const addCollection = await nftMarketplaceContract.addCollection(contract.address);
-    await addCollection.wait();
-
-    console.log("Done");
+    // Storing collection address in the marketplace
+    const tx = await nftMarketplaceContract.addCollection(contract.address);
+    setInfo({
+      info: "Transaction pending...",
+      link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+      hash: shortenHex(tx.hash),
+    });
+    const receipt = await tx.wait();
+    setInfo({
+      info: "Transaction completed.",
+    });
   };
 
-  const mintNft = async () => {
-    const image = nftImage.current?.files?.[0];
+  /////////////////////
+  //  Mint new token //
+  /////////////////////
+
+  const mintToken = async () => {
+    const image = tokenImage.current?.files?.[0];
 
     if (!image || !inputs.nftAddress) {
       return alert("Fill out the fields.");
@@ -150,16 +239,11 @@ const Marketplace = () => {
       const uploadedImage = await ipfs.add(image);
       const imagePath = `https://ipfs.infura.io/ipfs/${uploadedImage.path}`;
 
-      // Connect to the NFT contract
+      // Preparing the contract
       const signer = library.getSigner(account);
-      const Factory = new ethers.ContractFactory(
-        nftCollectionFactory.abi,
-        nftCollectionFactory.bytecode,
-        signer
-      );
+      const contract = await getCollectionContract(signer, inputs.nftAddress, null);
 
       // Mint
-      const contract = Factory.attach(inputs.nftAddress);
       const safeMint = await contract.safeMint(account, imagePath);
       const result = await safeMint.wait();
 
@@ -180,23 +264,23 @@ const Marketplace = () => {
         )}
         {info.error && <div className="error">{info.error}</div>}
         <div>
-          <h4>Create a nft</h4>
+          <h4>Create NFT Collection</h4>
           <label>
-            NFT Name
+            NFT Collection Name
             <input type="text" name="nftName" onChange={inputHandler} value={inputs.nftName} />
           </label>
           <label>
-            NFT Symbol
+            NFT Collection Symbol
             <input type="text" name="nftSymbol" onChange={inputHandler} value={inputs.nftSymbol} />
           </label>
           <button onClick={deployCollection}>Deploy Collection</button>
           <h4>Mint a new token</h4>
           <label>
-            NFT Image
-            <input type="file" ref={nftImage} />
+            Token Image
+            <input type="file" ref={tokenImage} />
           </label>
           <label>
-            NFT Address
+            NFT Collection Address
             <input
               type="text"
               name="nftAddress"
@@ -204,7 +288,7 @@ const Marketplace = () => {
               value={inputs.nftAddress}
             />
           </label>
-          <button type="button" onClick={mintNft}>
+          <button type="button" onClick={mintToken}>
             Mint NFT
           </button>
           {!ipfs && <p>Oh oh, Not connected to IPFS. Checkout out the logs for errors</p>}

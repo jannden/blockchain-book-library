@@ -6,7 +6,7 @@ dataSources:
     name: NftMarketplaceV2
     network: rinkeby
     source:
-      address: "0xd5fD20ee4Adc3c0A13f68800266c0b0687EBA0a0"
+      address: "0xec8440822A946dDaA17381Ba99385711dE28b1EC"
       abi: NftMarketplaceV2
       startBlock: 10739645
     mapping:

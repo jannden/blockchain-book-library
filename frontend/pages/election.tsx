@@ -128,13 +128,13 @@ const Election = () => {
 
   const newElectionHandler = async () => {
     const signer = library.getSigner(account);
-    const factory = new ethers.ContractFactory(
+    const Factory = new ethers.ContractFactory(
       electionFactory.abi,
       electionFactory.bytecode,
       signer
     );
 
-    const contract = await factory.deploy();
+    const contract = await Factory.deploy();
     await contract.deployed();
     console.log(contract);
     setDynamicContractAddress(contract.address);
