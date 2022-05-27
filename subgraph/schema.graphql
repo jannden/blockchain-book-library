@@ -6,7 +6,7 @@ type ItemBought @entity {
   price: BigInt! # uint256
   timestamp: BigInt! # uint256
   owner: Bytes! # address
-  nftUri: String!
+  tokenUri: String!
 }
 
 type ItemCanceled @entity {
@@ -16,7 +16,7 @@ type ItemCanceled @entity {
   tokenId: BigInt! # uint256
   timestamp: BigInt! # uint256
   owner: Bytes! # address
-  nftUri: String!
+  tokenUri: String!
 }
 
 type ItemListed @entity {
@@ -27,7 +27,7 @@ type ItemListed @entity {
   price: BigInt! # uint256
   timestamp: BigInt! # uint256
   owner: Bytes! # address
-  nftUri: String!
+  tokenUri: String!
 }
 
 type CollectionAdded @entity {

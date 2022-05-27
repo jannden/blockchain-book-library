@@ -18,7 +18,7 @@ export function handleItemBought(event: ItemBoughtEvent): void {
   entity.timestamp = event.block.timestamp;
   let nftCollection = NftCollection.bind(event.params.nftAddress);
   entity.owner = nftCollection.ownerOf(event.params.tokenId);
-  entity.nftUri = nftCollection.tokenURI(event.params.tokenId);
+  entity.tokenUri = nftCollection.tokenURI(event.params.tokenId);
   entity.save();
 }
 
@@ -32,7 +32,7 @@ export function handleItemCanceled(event: ItemCanceledEvent): void {
   entity.timestamp = event.block.timestamp;
   let nftCollection = NftCollection.bind(event.params.nftAddress);
   entity.owner = nftCollection.ownerOf(event.params.tokenId);
-  entity.nftUri = nftCollection.tokenURI(event.params.tokenId);
+  entity.tokenUri = nftCollection.tokenURI(event.params.tokenId);
   entity.save();
 }
 
@@ -47,7 +47,7 @@ export function handleItemListed(event: ItemListedEvent): void {
   entity.timestamp = event.block.timestamp;
   let nftCollection = NftCollection.bind(event.params.nftAddress);
   entity.owner = nftCollection.ownerOf(event.params.tokenId);
-  entity.nftUri = nftCollection.tokenURI(event.params.tokenId);
+  entity.tokenUri = nftCollection.tokenURI(event.params.tokenId);
   entity.save();
 }
 

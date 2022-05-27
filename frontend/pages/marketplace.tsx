@@ -1,6 +1,6 @@
 import type { JsonRpcSigner, Web3Provider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
-import { ContractFactory, ethers } from "ethers";
+import { BigNumber, ContractFactory, ethers } from "ethers";
 import { useEffect, useState, useRef } from "react";
 import nftCollectionFactory from "../contracts/NftCollection.json";
 import { createClient } from "urql";
@@ -16,9 +16,13 @@ const ipfs: IPFSHTTPClient = createIpsf({
 
 const useGraph = () => {
   const { library, account } = useWeb3React<Web3Provider>();
-  const [data, setData] = useState([]);
+  const [data, setData] = useState({
+    currentlyListedItems: [],
+    userItems: [],
+    userCollections: [],
+  });
 
-  const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v0.5";
+  const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v0.7";
   const graphQuery = `
       query {
       itemListeds {
@@ -77,7 +81,6 @@ const useGraph = () => {
           );
         });
       });
-      console.log("currentlyListedItems", currentlyListedItems);
 
       /*
        * Get items owned by the user grouped by NFT collections
@@ -88,17 +91,25 @@ const useGraph = () => {
        * the marketplace events.
        */
       const mergedMarketplace = [...itemListeds, ...itemCanceleds, ...itemBoughts];
-      const ownedByUserEverListed = mergedMarketplace.filter((token) => token.owner == account);
-      console.log("ownedByUserEverListed", ownedByUserEverListed);
-      const allOwned = [...ownedByUserEverListed];
-      const userCollections = collectionAddeds.filter((token) => token.deployer == account);
-      console.log("userCollections", userCollections);
+      const mergedMarketplaceWithoutDuplicates = mergedMarketplace.filter(
+        (thing, index, self) =>
+          self.findIndex(
+            (t) => t.tokenId === thing.tokenId && t.nftAddress === thing.nftAddress
+          ) === index
+      );
+      const ownedByUserEverListed = mergedMarketplaceWithoutDuplicates.filter(
+        (token) => token.owner == account.toLowerCase()
+      );
+      const userItems = [...ownedByUserEverListed];
+      const userCollections = collectionAddeds.filter(
+        (token) => token.deployer == account.toLowerCase()
+      );
       for (const collection of userCollections) {
         const signer = library.getSigner(account);
-        const contract = await getCollectionContract(signer, collection.nftAddress, null);
-        const tokenCount = await contract.balanceOf(account);
+        const collectionContract = await getCollectionContract(signer, collection.nftAddress, null);
+        const tokenCount = await collectionContract.balanceOf(account);
         for (let i = 0; i < tokenCount; i++) {
-          const tokenId = await contract.tokenOfOwnerByIndex(i);
+          const tokenId = (await collectionContract.tokenOfOwnerByIndex(account, i)).toNumber();
           if (
             mergedMarketplace.some(
               (token) => token.nftAddress == collection.nftAddress && token.tokenId == tokenId
@@ -106,20 +117,16 @@ const useGraph = () => {
           ) {
             continue;
           }
-          const tokenUri = await contract.tokenURI(tokenId);
-          allOwned.push({ tokenId, tokenUri });
+          const tokenUri = await collectionContract.tokenURI(tokenId);
+          userItems.push({ nftAddress: collection.nftAddress, tokenId, tokenUri });
         }
       }
-      // Remove duplicates
-      const allOwnedCleaned = allOwned.filter(
-        (thing, index, self) =>
-          self.findIndex(
-            (t) => t.tokenId === thing.tokenId && t.nftCollection === thing.nftCollection
-          ) === index
-      );
-      setData(currentlyListedItems);
+
+      setData({ currentlyListedItems, userItems, userCollections });
     }
-    fetchGraph();
+    if (account) {
+      fetchGraph();
+    }
   }, [account, graphQuery, library]);
   return data;
 };
@@ -135,12 +142,12 @@ const getCollectionContract = async (
     signer
   );
   if (contractAddress) {
-    const contract = Factory.attach(contractAddress);
-    return contract;
+    const collectionContract = Factory.attach(contractAddress);
+    return collectionContract;
   }
-  const contract = await Factory.deploy(...(args || []));
-  await contract.deployed();
-  return contract;
+  const collectionContract = await Factory.deploy(...(args || []));
+  await collectionContract.deployed();
+  return collectionContract;
 };
 
 type InfoType = {
@@ -154,28 +161,28 @@ type Inputs = {
   nftName: string;
   nftSymbol: string;
   nftAddress: string;
+  tokenId: string;
+  price: string;
 };
 
 const defaultInputs: Inputs = {
   nftName: "",
   nftSymbol: "",
   nftAddress: "",
+  tokenId: "",
+  price: "",
 };
 
 const Marketplace = () => {
   const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
   const { library, account, chainId } = useWeb3React<Web3Provider>();
-  const graphResult = useGraph();
+  const { currentlyListedItems, userItems, userCollections } = useGraph();
 
   const [loading, setLoading] = useState<boolean>(false);
   const [info, setInfo] = useState<InfoType>({});
 
   const [inputs, setInputs] = useState<Inputs>(defaultInputs);
   const tokenImage = useRef(null);
-
-  useEffect(() => {
-    console.log("graphResult", graphResult);
-  }, [graphResult]);
 
   const inputHandler = (e) => {
     e.preventDefault();
@@ -188,6 +195,12 @@ const Marketplace = () => {
         break;
       case "nftAddress":
         setInputs((inputs) => ({ ...inputs, nftAddress: e.target.value }));
+        break;
+      case "tokenId":
+        setInputs((inputs) => ({ ...inputs, tokenId: e.target.value }));
+        break;
+      case "price":
+        setInputs((inputs) => ({ ...inputs, price: e.target.value }));
         break;
     }
   };
@@ -204,14 +217,14 @@ const Marketplace = () => {
 
     // Preparing the contract
     const signer = library.getSigner(account);
-    const contract = await getCollectionContract(signer, null, [
+    const collectionContract = await getCollectionContract(signer, null, [
       inputs.nftName,
       inputs.nftSymbol,
       deployedNftMarketplace.address,
     ]);
 
     // Storing collection address in the marketplace
-    const tx = await nftMarketplaceContract.addCollection(contract.address);
+    const tx = await nftMarketplaceContract.addCollection(collectionContract.address);
     setInfo({
       info: "Transaction pending...",
       link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
@@ -241,13 +254,74 @@ const Marketplace = () => {
 
       // Preparing the contract
       const signer = library.getSigner(account);
-      const contract = await getCollectionContract(signer, inputs.nftAddress, null);
+      const collectionContract = await getCollectionContract(signer, inputs.nftAddress, null);
 
       // Mint
-      const safeMint = await contract.safeMint(account, imagePath);
+      const safeMint = await collectionContract.safeMint(account, imagePath);
       const result = await safeMint.wait();
 
       console.log(result);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  /////////////////////
+  //     List Item   //
+  /////////////////////
+
+  const listItem = async () => {
+    if (!inputs.nftAddress || !inputs.tokenId || !inputs.price) {
+      return alert("Fill out the fields.");
+    }
+    try {
+      // Preparing the contract
+      const signer = library.getSigner(account);
+      const collectionContract = await getCollectionContract(signer, inputs.nftAddress, null);
+      let tx = await collectionContract.approve(nftMarketplaceContract.address, inputs.tokenId);
+      setInfo({
+        info: "Transaction pending...",
+        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        hash: shortenHex(tx.hash),
+      });
+      let receipt = await tx.wait();
+      setInfo({
+        info: "Transaction completed.",
+      });
+      tx = await nftMarketplaceContract.listItem(inputs.nftAddress, inputs.tokenId, inputs.price);
+      setInfo({
+        info: "Transaction pending...",
+        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        hash: shortenHex(tx.hash),
+      });
+      receipt = await tx.wait();
+      setInfo({
+        info: "Transaction completed.",
+      });
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  /////////////////////
+  //  Cancel Listing //
+  /////////////////////
+
+  const cancelListing = async () => {
+    if (!inputs.nftAddress || !inputs.tokenId) {
+      return alert("Fill out the fields.");
+    }
+    try {
+      const tx = await nftMarketplaceContract.cancelListing(inputs.nftAddress, inputs.tokenId);
+      setInfo({
+        info: "Transaction pending...",
+        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        hash: shortenHex(tx.hash),
+      });
+      const receipt = await tx.wait();
+      setInfo({
+        info: "Transaction completed.",
+      });
     } catch (error) {
       console.log(error);
     }
@@ -293,15 +367,78 @@ const Marketplace = () => {
           </button>
           {!ipfs && <p>Oh oh, Not connected to IPFS. Checkout out the logs for errors</p>}
           <h4>Owned tokens grouped by NFT collections (Minted + Bought / Listed + Not Listed)</h4>
-          <p>
-            Not listed minted tokens can be accessed by iterating over all user collections calling
-            balanceOf() and then tokenOfOwnerByIndex(). Any tokens that are owned by the user and
-            have ever been listed on the marketplace can be omitted, as they will be fetched from
-            the marketplace events.
-          </p>
+          {userItems &&
+            userItems.map((item, index) => (
+              <p key={index}>
+                {item.tokenUri}
+                <br />
+                {item.tokenId}
+                <br />
+                {item.nftAddress}
+                <br />
+                ----------------
+              </p>
+            ))}
+          <h4>User collections</h4>
+          {userCollections &&
+            userCollections.map((item, index) => (
+              <p key={index}>
+                {item.nftAddress}
+                <br />
+                ----------------
+              </p>
+            ))}
           <h4>Add token to the marketplace</h4>
+          <label>
+            NFT Collection Address
+            <input
+              type="text"
+              name="nftAddress"
+              onChange={inputHandler}
+              value={inputs.nftAddress}
+            />
+          </label>
+          <label>
+            Token Id
+            <input type="text" name="tokenId" onChange={inputHandler} value={inputs.tokenId} />
+          </label>
+          <label>
+            Price
+            <input type="text" name="price" onChange={inputHandler} value={inputs.price} />
+          </label>
+          <button type="button" onClick={listItem}>
+            List item
+          </button>
           <h4>Remove token from the marketplace</h4>
+          <label>
+            NFT Collection Address
+            <input
+              type="text"
+              name="nftAddress"
+              onChange={inputHandler}
+              value={inputs.nftAddress}
+            />
+          </label>
+          <label>
+            Token Id
+            <input type="text" name="tokenId" onChange={inputHandler} value={inputs.tokenId} />
+          </label>
+          <button type="button" onClick={cancelListing}>
+            Cancel listing
+          </button>
           <h4>Tokens for sale (with option to buy)</h4>
+          {currentlyListedItems &&
+            currentlyListedItems.map((item, index) => (
+              <p key={index}>
+                {item.tokenUri}
+                <br />
+                {item.tokenId}
+                <br />
+                {item.nftAddress}
+                <br />
+                ----------------
+              </p>
+            ))}
         </div>
       </div>
     </>

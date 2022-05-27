@@ -11,5 +11,5 @@ export const deployedBookLibrary = {
 
 export const deployedNftMarketplace = {
   name: "NftMarketplaceV2",
-  address: "0xec8440822A946dDaA17381Ba99385711dE28b1EC"
+  address: "0xE80F6996A58dCb70dfC14D52663F3790279CaB47"
 }
