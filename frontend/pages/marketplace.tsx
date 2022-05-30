@@ -2,15 +2,22 @@ import type { JsonRpcSigner, Web3Provider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
-import { BigNumber, ContractFactory, ethers } from "ethers";
+import { ethers } from "ethers";
 import { useEffect, useState, useRef } from "react";
 import nftCollectionFactory from "../contracts/NftCollection.json";
 import { createClient } from "urql";
 import { deployedNftMarketplace } from "../utils/deployedContracts";
 import useNftMarketplaceContract from "../hooks/useNftMarketplaceContract";
-import { create as createIpsf, CID, IPFSHTTPClient } from "ipfs-http-client";
+import { create as createIpsf, IPFSHTTPClient } from "ipfs-http-client";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
+import Divider from "@mui/material/Divider";
+import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
+import Link from "@mui/material/Link";
+import Alert from "@mui/material/Alert";
+import MediaCard from "../components/MediaCard";
 
 const ipfs: IPFSHTTPClient = createIpsf({
   url: "https://ipfs.infura.io:5001",
@@ -18,11 +25,12 @@ const ipfs: IPFSHTTPClient = createIpsf({
 
 const useGraph = () => {
   const { library, account } = useWeb3React<Web3Provider>();
-  const [data, setData] = useState({
+  const [graphData, setGraphData] = useState({
     currentlyListedItems: [],
     userItems: [],
     userCollections: [],
   });
+  const [_, setRefreshGraph] = useState(0);
 
   const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v0.7";
   const graphQuery = `
@@ -88,7 +96,7 @@ const useGraph = () => {
         }),
         "nftAddress",
         "tokenId"
-      );
+      ).filter((el: any) => el.owner != account.toLowerCase());
 
       /*
        * Get items owned by the user grouped by NFT collections
@@ -99,6 +107,7 @@ const useGraph = () => {
        * the marketplace events.
        */
       const mergedMarketplace = [...itemListeds, ...itemCanceleds, ...itemBoughts];
+      console.log(mergedMarketplace);
       const mergedMarketplaceWithoutDuplicates = removeDuplicates(
         mergedMarketplace,
         "nftAddress",
@@ -133,7 +142,7 @@ const useGraph = () => {
         }
       }
 
-      setData({
+      setGraphData({
         currentlyListedItems: groupBy(currentlyListedItems, "nftAddress"),
         userItems: groupBy(userItems, "nftAddress"),
         userCollections,
@@ -142,8 +151,8 @@ const useGraph = () => {
     if (account) {
       fetchGraph();
     }
-  }, [account, graphQuery, library]);
-  return data;
+  }, [account, graphQuery, library, setRefreshGraph]);
+  return { ...graphData, setRefreshGraph };
 };
 
 const groupBy = (items, key) => {
@@ -198,6 +207,7 @@ type Inputs = {
   nftAddress: string;
   tokenId: string;
   price: string;
+  tokenImage: string;
 };
 
 const defaultInputs: Inputs = {
@@ -206,20 +216,22 @@ const defaultInputs: Inputs = {
   nftAddress: "",
   tokenId: "",
   price: "",
+  tokenImage: "",
 };
 
 const Marketplace = () => {
   const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
   const { library, account, chainId } = useWeb3React<Web3Provider>();
-  const { currentlyListedItems, userItems, userCollections } = useGraph();
+  const { currentlyListedItems, userItems, userCollections, setRefreshGraph } = useGraph();
 
   const [loading, setLoading] = useState<boolean>(false);
   const [info, setInfo] = useState<InfoType>({});
 
   const [inputs, setInputs] = useState<Inputs>(defaultInputs);
+  const [selectedCollection, setSelectedCollection] = useState("");
   const tokenImage = useRef(null);
 
-  const inputHandler = (e) => {
+  const inputHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
     switch (e.target.name) {
       case "nftName":
@@ -237,6 +249,9 @@ const Marketplace = () => {
       case "price":
         setInputs((inputs) => ({ ...inputs, price: e.target.value }));
         break;
+      case "tokenImage":
+        setInputs((inputs) => ({ ...inputs, tokenImage: e.target.files?.[0]?.name || "" }));
+        break;
     }
   };
 
@@ -249,8 +264,12 @@ const Marketplace = () => {
     if (!inputs.nftName || !inputs.nftSymbol) {
       return alert("Fill out the fields.");
     }
+    setLoading(true);
 
     // Preparing the contract
+    setInfo({
+      info: "Deploying...",
+    });
     const signer = library.getSigner(account);
     const collectionContract = await getCollectionContract(signer, null, [
       inputs.nftName,
@@ -259,16 +278,21 @@ const Marketplace = () => {
     ]);
 
     // Storing collection address in the marketplace
-    const tx = await nftMarketplaceContract.addCollection(collectionContract.address);
-    setInfo({
-      info: "Transaction pending...",
-      link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
-      hash: shortenHex(tx.hash),
-    });
-    const receipt = await tx.wait();
-    setInfo({
-      info: "Transaction completed.",
-    });
+    try {
+      const tx = await nftMarketplaceContract.addCollection(collectionContract.address);
+      setInfo({
+        info: "Transaction pending...",
+        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        hash: shortenHex(tx.hash),
+      });
+      await tx.wait();
+      setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
+    } catch (error) {
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
+    } finally {
+      setLoading(false);
+      setRefreshGraph((prevValue) => prevValue++);
+    }
   };
 
   /////////////////////
@@ -276,11 +300,12 @@ const Marketplace = () => {
   /////////////////////
 
   const mintToken = async () => {
+    // Checking user input
     const image = tokenImage.current?.files?.[0];
-
     if (!image || !inputs.nftAddress) {
       return alert("Fill out the fields.");
     }
+    setLoading(true);
 
     try {
       // Upload the image
@@ -292,12 +317,19 @@ const Marketplace = () => {
       const collectionContract = await getCollectionContract(signer, inputs.nftAddress, null);
 
       // Mint
-      const safeMint = await collectionContract.safeMint(account, imagePath);
-      const result = await safeMint.wait();
-
-      console.log(result);
+      const tx = await collectionContract.safeMint(account, imagePath);
+      setInfo({
+        info: "Transaction pending...",
+        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        hash: shortenHex(tx.hash),
+      });
+      await tx.wait();
+      setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
     } catch (error) {
-      console.log(error);
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
+    } finally {
+      setLoading(false);
+      setRefreshGraph((prevValue) => prevValue++);
     }
   };
 
@@ -306,9 +338,12 @@ const Marketplace = () => {
   /////////////////////
 
   const listItem = async () => {
+    // Checking user input
     if (!inputs.nftAddress || !inputs.tokenId || !inputs.price) {
       return alert("Fill out the fields.");
     }
+    setLoading(true);
+
     try {
       // Preparing the contract
       const signer = library.getSigner(account);
@@ -319,22 +354,22 @@ const Marketplace = () => {
         link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
-      let receipt = await tx.wait();
-      setInfo({
-        info: "Transaction completed.",
-      });
+      await tx.wait();
+
+      setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
       tx = await nftMarketplaceContract.listItem(inputs.nftAddress, inputs.tokenId, inputs.price);
       setInfo({
         info: "Transaction pending...",
         link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
-      receipt = await tx.wait();
-      setInfo({
-        info: "Transaction completed.",
-      });
+      await tx.wait();
+      setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
     } catch (error) {
-      console.log(error);
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
+    } finally {
+      setLoading(false);
+      setRefreshGraph((prevValue) => prevValue++);
     }
   };
 
@@ -343,9 +378,12 @@ const Marketplace = () => {
   /////////////////////
 
   const cancelListing = async () => {
+    // Checking user input
     if (!inputs.nftAddress || !inputs.tokenId) {
       return alert("Fill out the fields.");
     }
+    setLoading(true);
+
     try {
       const tx = await nftMarketplaceContract.cancelListing(inputs.nftAddress, inputs.tokenId);
       setInfo({
@@ -353,151 +391,278 @@ const Marketplace = () => {
         link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
-      const receipt = await tx.wait();
-      setInfo({
-        info: "Transaction completed.",
-      });
+      await tx.wait();
+      setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
     } catch (error) {
-      console.log(error);
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
+    } finally {
+      setLoading(false);
+      setRefreshGraph((prevValue) => prevValue++);
     }
   };
-  return (
-    <Grid container spacing={3}>
-      {/* Chart */}
-      <Grid item xs={12} md={8} lg={9}>
-        <Paper
-          sx={{
-            p: 2,
-            display: "flex",
-            flexDirection: "column",
-            height: 240,
-          }}
-        ></Paper>
-      </Grid>
-      {/* Recent Deposits */}
-      <Grid item xs={12} md={4} lg={3}>
-        <Paper
-          sx={{
-            p: 2,
-            display: "flex",
-            flexDirection: "column",
-            height: 240,
-          }}
-        ></Paper>
-      </Grid>
-      {/* Recent Orders */}
-      <Grid item xs={12}>
-        <Paper sx={{ p: 2, display: "flex", flexDirection: "column" }}></Paper>
-      </Grid>
 
-      {info.info && <div className="info">{info.info}</div>}
-      {info.link && info.hash && (
-        <div>
-          <a href={info.link}>{info.hash}</a>
-        </div>
+  /////////////////////
+  //     Buy Item    //
+  /////////////////////
+
+  const handlePurchase = async (nftAddress, tokenId, price) => {
+    // Checking user input
+    if (!nftAddress || !tokenId || !price) {
+      return alert("Fill out the fields.");
+    }
+    setLoading(true);
+
+    try {
+      const tx = await nftMarketplaceContract.buyItem(nftAddress, tokenId, { value: price });
+      setInfo({
+        info: "Transaction pending...",
+        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        hash: shortenHex(tx.hash),
+      });
+      await tx.wait();
+      setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
+    } catch (error) {
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
+    } finally {
+      setLoading(false);
+      setRefreshGraph((prevValue) => prevValue++);
+    }
+  };
+
+  return (
+    <>
+      {info.info && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          {info.info}{" "}
+          {info.link && info.hash && <Link href={info.link}>{shortenHex(info.hash, 4)}</Link>}
+        </Alert>
       )}
-      {info.error && <div className="error">{info.error}</div>}
-      <div>
-        <h4>Create NFT Collection</h4>
-        <label>
-          NFT Collection Name
-          <input type="text" name="nftName" onChange={inputHandler} value={inputs.nftName} />
-        </label>
-        <label>
-          NFT Collection Symbol
-          <input type="text" name="nftSymbol" onChange={inputHandler} value={inputs.nftSymbol} />
-        </label>
-        <button onClick={deployCollection}>Deploy Collection</button>
-        <h4>Mint a new token</h4>
-        <label>
-          Token Image
-          <input type="file" ref={tokenImage} />
-        </label>
-        <label>
-          NFT Collection Address
-          <input type="text" name="nftAddress" onChange={inputHandler} value={inputs.nftAddress} />
-        </label>
-        <Button variant="contained" onClick={mintToken}>
-          Mint NFT
-        </Button>
-        {!ipfs && <p>Oh oh, Not connected to IPFS. Checkout out the logs for errors</p>}
-        <h4>Owned tokens grouped by NFT collections (Minted + Bought / Listed + Not Listed)</h4>
-        {userItems &&
-          Object.keys(userItems).map((key, index) => (
-            <div key={index}>
-              nftAddress: {key}
-              {console.log(key, userItems)}
-              {userItems[key].map((token, index2) => (
-                <p key={index2}>
-                  {token.tokenUri}
-                  <br />
-                  {token.tokenId}
-                  <br />
-                  ******
-                </p>
-              ))}
-              ||||||||||||||||||||||||||||||||||||||||||||||||||
-            </div>
-          ))}
-        <h4>User collections</h4>
-        {userCollections &&
-          userCollections.map((item, index) => (
-            <p key={index}>
-              {item.nftAddress}
-              <br />
-              ----------------
-            </p>
-          ))}
-        <h4>Add token to the marketplace</h4>
-        <label>
-          NFT Collection Address
-          <input type="text" name="nftAddress" onChange={inputHandler} value={inputs.nftAddress} />
-        </label>
-        <label>
-          Token Id
-          <input type="text" name="tokenId" onChange={inputHandler} value={inputs.tokenId} />
-        </label>
-        <label>
-          Price
-          <input type="text" name="price" onChange={inputHandler} value={inputs.price} />
-        </label>
-        <button type="button" onClick={listItem}>
-          List item
-        </button>
-        <h4>Remove token from the marketplace</h4>
-        <label>
-          NFT Collection Address
-          <input type="text" name="nftAddress" onChange={inputHandler} value={inputs.nftAddress} />
-        </label>
-        <label>
-          Token Id
-          <input type="text" name="tokenId" onChange={inputHandler} value={inputs.tokenId} />
-        </label>
-        <button type="button" onClick={cancelListing}>
-          Cancel listing
-        </button>
-        <h4>Tokens for sale (with option to buy)</h4>
-        {currentlyListedItems &&
-          Object.keys(currentlyListedItems).map((key, index) => (
-            <div key={index}>
-              nftAddress: {key}
-              {console.log(key, currentlyListedItems)}
-              {currentlyListedItems[key].map((token, index2) => (
-                <p key={index2}>
-                  {token.tokenUri}
-                  <br />
-                  {token.tokenId}
-                  <br />
-                  {token.price}
-                  <br />
-                  ******
-                </p>
-              ))}
-              ||||||||||||||||||||||||||||||||||||||||||||||||||
-            </div>
-          ))}
-      </div>
-    </Grid>
+      {info.error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {info.error}
+        </Alert>
+      )}
+      <Grid container spacing={3}>
+        <Grid item lg={3}>
+          <Paper
+            sx={{
+              p: 2,
+            }}
+          >
+            <h3>Create NFT Collection</h3>
+            <Box
+              sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
+            >
+              <TextField
+                variant="outlined"
+                name="nftName"
+                label="NFT Collection Name"
+                onChange={inputHandler}
+                value={inputs.nftName}
+                disabled={loading}
+              />
+              <TextField
+                variant="outlined"
+                name="nftSymbol"
+                label="NFT Collection Symbol"
+                onChange={inputHandler}
+                value={inputs.nftSymbol}
+                disabled={loading}
+              />
+              <Button variant="contained" onClick={deployCollection} disabled={loading}>
+                Deploy Collection
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid item lg={3}>
+          <Paper
+            sx={{
+              p: 2,
+            }}
+          >
+            <Box
+              sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
+            >
+              <h3>Mint a new token</h3>
+              <TextField
+                select
+                label="NFT Collection"
+                name="nftAddress"
+                value={inputs.nftAddress}
+                onChange={inputHandler}
+                disabled={loading}
+              >
+                {userCollections &&
+                  userCollections.map((item, index) => (
+                    <MenuItem key={item.nftAddress} value={item.nftAddress}>
+                      {shortenHex(item.nftAddress, 4)}
+                    </MenuItem>
+                  ))}
+              </TextField>
+              <label htmlFor="tokenImage">
+                <input
+                  ref={tokenImage}
+                  id="tokenImage"
+                  name="tokenImage"
+                  style={{ visibility: "hidden", height: 0, width: 0 }}
+                  type="file"
+                  accept="image/*"
+                  onChange={inputHandler}
+                  disabled={loading}
+                />
+                <Button
+                  variant="outlined"
+                  component="span"
+                  sx={{ mb: 2, width: "100%" }}
+                  disabled={loading}
+                >
+                  {inputs.tokenImage ? inputs.tokenImage : "Choose Image"}
+                </Button>
+              </label>
+              <Button variant="contained" onClick={mintToken} disabled={loading}>
+                Mint NFT
+              </Button>
+              {!ipfs && <p>Oh oh, Not connected to IPFS. Checkout out the logs for errors</p>}
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid item lg={3}>
+          <Paper
+            sx={{
+              p: 2,
+            }}
+          >
+            <Box
+              sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
+            >
+              <h3>List token</h3>
+              <TextField
+                select
+                label="NFT Collection"
+                name="nftAddress"
+                value={inputs.nftAddress}
+                onChange={inputHandler}
+                disabled={loading}
+              >
+                {userCollections &&
+                  userCollections.map((item, index) => (
+                    <MenuItem key={item.nftAddress} value={item.nftAddress}>
+                      {shortenHex(item.nftAddress, 4)}
+                    </MenuItem>
+                  ))}
+              </TextField>
+              <TextField
+                variant="outlined"
+                name="tokenId"
+                type="number"
+                label="Token Id"
+                onChange={inputHandler}
+                value={inputs.tokenId}
+                disabled={loading}
+              />
+              <TextField
+                variant="outlined"
+                name="price"
+                type="number"
+                label="Price"
+                onChange={inputHandler}
+                value={inputs.price}
+                disabled={loading}
+              />
+              <Button variant="contained" onClick={listItem} disabled={loading}>
+                List token
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid item lg={3}>
+          <Paper
+            sx={{
+              p: 2,
+            }}
+          >
+            <Box
+              sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
+            >
+              <h3>Cancel listing</h3>
+              <TextField
+                select
+                label="NFT Collection"
+                name="nftAddress"
+                value={inputs.nftAddress}
+                onChange={inputHandler}
+                disabled={loading}
+              >
+                {userCollections &&
+                  userCollections.map((item, index) => (
+                    <MenuItem key={item.nftAddress} value={item.nftAddress}>
+                      {shortenHex(item.nftAddress, 4)}
+                    </MenuItem>
+                  ))}
+              </TextField>
+              <TextField
+                variant="outlined"
+                name="tokenId"
+                type="number"
+                label="Token Id"
+                onChange={inputHandler}
+                value={inputs.tokenId}
+                disabled={loading}
+              />
+              <Button variant="contained" onClick={cancelListing} disabled={loading}>
+                Cancel listing
+              </Button>
+            </Box>
+          </Paper>
+        </Grid>
+        <Grid item lg={12}>
+          <h2>Owned tokens grouped by NFT collections (Minted + Bought / Listed + Not Listed)</h2>
+
+          {userItems &&
+            Object.keys(userItems).map((key, index) => (
+              <Box key={index}>
+                <Divider
+                  sx={{
+                    mt: 5,
+                    mb: 3,
+                  }}
+                />
+                <h3>Collection: {shortenHex(key, 4)}</h3>
+                <Grid container spacing={3}>
+                  {userItems[key].map((token, index2) => (
+                    <Grid item lg={3} key={index2}>
+                      <MediaCard tokenData={token}></MediaCard>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            ))}
+        </Grid>
+        <Grid item lg={12}>
+          <h2>Tokens for sale (with option to buy)</h2>
+          {currentlyListedItems &&
+            Object.keys(currentlyListedItems).map((key, index) => (
+              <Box key={index}>
+                <Divider
+                  sx={{
+                    mt: 5,
+                    mb: 3,
+                  }}
+                />
+                <h3>Collection: {shortenHex(key, 4)}</h3>
+                <Grid container spacing={3}>
+                  {currentlyListedItems[key].map((token, index2) => (
+                    <Grid item lg={3} key={index2}>
+                      <MediaCard tokenData={token} handlePurchase={handlePurchase}></MediaCard>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            ))}
+        </Grid>
+      </Grid>
+    </>
   );
 };
 

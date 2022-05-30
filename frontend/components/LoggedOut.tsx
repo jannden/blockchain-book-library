@@ -1,4 +1,5 @@
 import { useWeb3React } from "@web3-react/core";
+import Button from "@mui/material/Button";
 import { UserRejectedRequestError } from "@web3-react/injected-connector";
 import { useEffect, useState } from "react";
 import { injected, walletConnect } from "../utils/connectors";
@@ -22,7 +23,9 @@ const LoggedOut = () => {
   return (
     <>
       {isWeb3Available ? (
-        <button
+        <Button
+          variant="contained"
+          color="warning"
           disabled={connecting}
           onClick={() => {
             setConnecting(true);
@@ -37,13 +40,18 @@ const LoggedOut = () => {
           }}
         >
           {isMetaMaskInstalled ? "Connect to MetaMask" : "Connect to Wallet"}
-        </button>
+        </Button>
       ) : (
-        <button onClick={startOnboarding}>Install Metamask</button>
+        <Button variant="contained" color="warning" onClick={startOnboarding}>
+          Install Metamask
+        </Button>
       )}
       {
-        <button
+        <Button
+          variant="contained"
+          color="warning"
           disabled={connecting}
+          sx={{ marginLeft: 2 }}
           onClick={async () => {
             try {
               await activate(walletConnect(), undefined, true);
@@ -57,7 +65,7 @@ const LoggedOut = () => {
           }}
         >
           Wallet Connect
-        </button>
+        </Button>
       }
     </>
   );

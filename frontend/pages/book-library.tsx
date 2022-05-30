@@ -61,7 +61,6 @@ const BookLibrary = () => {
       });
       getAvailableBooks();
     } catch (error) {
-      // Solidity errors returned by required statements have the syntax error.error.message
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {
@@ -83,7 +82,6 @@ const BookLibrary = () => {
       });
       getAvailableBooks();
     } catch (error) {
-      // Solidity errors returned by required statements have the syntax error.error.message
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {
@@ -105,7 +103,6 @@ const BookLibrary = () => {
       });
       getAvailableBooks();
     } catch (error) {
-      // Solidity errors returned by required statements have the syntax error.error.message
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {
@@ -119,7 +116,6 @@ const BookLibrary = () => {
       let events = await bookLibraryContract.queryFilter(eventFilter);
       setAllBorrowers(events.map((item) => item.args?.borrower));
     } catch (error) {
-      // Solidity errors returned by required statements have the syntax error.error.message
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {

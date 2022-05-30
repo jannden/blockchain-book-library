@@ -1,4 +1,6 @@
 import { useWeb3React } from "@web3-react/core";
+import Button from "@mui/material/Button";
+import Link from "@mui/material/Link";
 import useENSName from "../hooks/useENSName";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
 import NativeCurrencyBalance from "./NativeCurrencyBalance";
@@ -10,7 +12,9 @@ const LoggedIn = () => {
 
   return (
     <>
-      <a
+      <Link
+        color="white"
+        underline="hover"
         {...{
           href: formatEtherscanLink("Account", [chainId, account]),
           target: "_blank",
@@ -18,11 +22,12 @@ const LoggedIn = () => {
         }}
       >
         {ENSName || `${shortenHex(account, 4)}`}
-      </a>
-      <br />
-      {typeof account === "string" && !!library && <NativeCurrencyBalance />}
-      <br />
-      <button
+        {typeof account === "string" && !!library && <NativeCurrencyBalance />}
+      </Link>
+      <Button
+        variant="contained"
+        color="info"
+        sx={{ marginLeft: 2 }}
         onClick={async () => {
           try {
             await deactivate();
@@ -32,7 +37,7 @@ const LoggedIn = () => {
         }}
       >
         Disconnect
-      </button>
+      </Button>
     </>
   );
 };

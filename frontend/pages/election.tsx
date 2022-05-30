@@ -76,8 +76,7 @@ const Election = () => {
       });
       getElectionEnded();
     } catch (error) {
-      // Solidity errors returned by required statements have the syntax error.error.message
-      setInfo({ error: error.error?.message || error.message });
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {
       setLoading(false);
@@ -118,8 +117,7 @@ const Election = () => {
       getCurrentLeader();
       getCurrentSeats();
     } catch (error) {
-      // Solidity errors returned by required statements have the syntax error.error.message
-      setInfo({ error: error.error?.message || error.message });
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
       console.log(error.error?.message);
     } finally {
       setLoading(false);
