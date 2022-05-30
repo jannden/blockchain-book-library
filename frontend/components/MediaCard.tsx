@@ -6,7 +6,7 @@ import CardMedia from "@mui/material/CardMedia";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { grey } from "@mui/material/colors";
-import { shortenHex } from "../utils/util";
+import { parseBalance, shortenHex } from "../utils/util";
 
 type TokenData = {
   nftAddress: string;
@@ -27,7 +27,7 @@ export default function MediaCard({ tokenData, handlePurchase }: MediaCardProps)
       <CardMedia component="img" height="140" image={tokenData.tokenUri} />
       <CardContent>
         <Typography gutterBottom variant="h5" component="div">
-          {tokenData.price && `Ξ${tokenData.price}`}
+          {tokenData.price && `Ξ${parseBalance(tokenData.price ?? 0)}`}
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Token ID: {tokenData.tokenId}

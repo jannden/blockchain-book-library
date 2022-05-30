@@ -28,11 +28,12 @@ const useGraph = () => {
   const [graphData, setGraphData] = useState({
     currentlyListedItems: [],
     userItems: [],
-    userCollections: [],
+    userMintableCollections: [],
+    userAllCollections: [],
   });
   const [_, setRefreshGraph] = useState(0);
 
-  const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v0.7";
+  const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v0.8";
   const graphQuery = `
       query {
       itemListeds {
@@ -106,8 +107,9 @@ const useGraph = () => {
        * have ever been listed on the marketplace can be omitted, as they will be fetched from
        * the marketplace events.
        */
-      const mergedMarketplace = [...itemListeds, ...itemCanceleds, ...itemBoughts];
-      console.log(mergedMarketplace);
+      const mergedMarketplace = [...itemListeds, ...itemCanceleds, ...itemBoughts].sort(
+        ({ timestamp: a }, { timestamp: b }) => b - a
+      );
       const mergedMarketplaceWithoutDuplicates = removeDuplicates(
         mergedMarketplace,
         "nftAddress",
@@ -121,10 +123,11 @@ const useGraph = () => {
           tokenUri: token.tokenUri,
         }));
       const userItems = [...ownedByUserEverListed];
-      const userCollections = collectionAddeds.filter(
+
+      const userMintableCollections = collectionAddeds.filter(
         (token) => token.deployer == account.toLowerCase()
       );
-      for (const collection of userCollections) {
+      for (const collection of userMintableCollections) {
         const signer = library.getSigner(account);
         const collectionContract = await getCollectionContract(signer, collection.nftAddress, null);
         const tokenCount = await collectionContract.balanceOf(account);
@@ -142,10 +145,19 @@ const useGraph = () => {
         }
       }
 
+      // Add collections that the user hasn't deployed but owns tokens from
+      const mixOfCollections = [...userMintableCollections, ...userItems].map(
+        (item) => item.nftAddress
+      );
+      const userAllCollections = mixOfCollections
+        .filter((item, pos) => mixOfCollections.indexOf(item) == pos)
+        .map((item) => ({ nftAddress: item }));
+
       setGraphData({
         currentlyListedItems: groupBy(currentlyListedItems, "nftAddress"),
         userItems: groupBy(userItems, "nftAddress"),
-        userCollections,
+        userMintableCollections,
+        userAllCollections,
       });
     }
     if (account) {
@@ -222,7 +234,13 @@ const defaultInputs: Inputs = {
 const Marketplace = () => {
   const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
   const { library, account, chainId } = useWeb3React<Web3Provider>();
-  const { currentlyListedItems, userItems, userCollections, setRefreshGraph } = useGraph();
+  const {
+    currentlyListedItems,
+    userItems,
+    userMintableCollections,
+    userAllCollections,
+    setRefreshGraph,
+  } = useGraph();
 
   const [loading, setLoading] = useState<boolean>(false);
   const [info, setInfo] = useState<InfoType>({});
@@ -356,8 +374,14 @@ const Marketplace = () => {
       });
       await tx.wait();
 
+      // Find out listing fee
+      const listingFee = await nftMarketplaceContract.listingFee();
+
+      // List item
       setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
-      tx = await nftMarketplaceContract.listItem(inputs.nftAddress, inputs.tokenId, inputs.price);
+      tx = await nftMarketplaceContract.listItem(inputs.nftAddress, inputs.tokenId, inputs.price, {
+        value: listingFee,
+      });
       setInfo({
         info: "Transaction pending...",
         link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
@@ -429,6 +453,29 @@ const Marketplace = () => {
     }
   };
 
+  /////////////////////
+  // Withdraw Funds  //
+  /////////////////////
+
+  const withdrawFunds = async () => {
+    setLoading(true);
+
+    try {
+      const tx = await nftMarketplaceContract.withdrawFunds();
+      setInfo({
+        info: "Transaction pending...",
+        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        hash: shortenHex(tx.hash),
+      });
+      await tx.wait();
+      setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
+    } catch (error) {
+      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
       {info.info && (
@@ -493,8 +540,8 @@ const Marketplace = () => {
                 onChange={inputHandler}
                 disabled={loading}
               >
-                {userCollections &&
-                  userCollections.map((item, index) => (
+                {userMintableCollections &&
+                  userMintableCollections.map((item, index) => (
                     <MenuItem key={item.nftAddress} value={item.nftAddress}>
                       {shortenHex(item.nftAddress, 4)}
                     </MenuItem>
@@ -545,8 +592,8 @@ const Marketplace = () => {
                 onChange={inputHandler}
                 disabled={loading}
               >
-                {userCollections &&
-                  userCollections.map((item, index) => (
+                {userAllCollections &&
+                  userAllCollections.map((item, index) => (
                     <MenuItem key={item.nftAddress} value={item.nftAddress}>
                       {shortenHex(item.nftAddress, 4)}
                     </MenuItem>
@@ -594,8 +641,8 @@ const Marketplace = () => {
                 onChange={inputHandler}
                 disabled={loading}
               >
-                {userCollections &&
-                  userCollections.map((item, index) => (
+                {userAllCollections &&
+                  userAllCollections.map((item, index) => (
                     <MenuItem key={item.nftAddress} value={item.nftAddress}>
                       {shortenHex(item.nftAddress, 4)}
                     </MenuItem>
@@ -615,6 +662,16 @@ const Marketplace = () => {
               </Button>
             </Box>
           </Paper>
+          <Paper
+            sx={{
+              p: 2,
+              mt: 2,
+            }}
+          >
+            <Button variant="contained" onClick={withdrawFunds} disabled={loading}>
+              Withdraw funds
+            </Button>
+          </Paper>
         </Grid>
         <Grid item lg={12}>
           <h2>Owned tokens grouped by NFT collections (Minted + Bought / Listed + Not Listed)</h2>
@@ -628,7 +685,7 @@ const Marketplace = () => {
                     mb: 3,
                   }}
                 />
-                <h3>Collection: {shortenHex(key, 4)}</h3>
+                <h3>Collection: {key}</h3>
                 <Grid container spacing={3}>
                   {userItems[key].map((token, index2) => (
                     <Grid item lg={3} key={index2}>
@@ -650,7 +707,7 @@ const Marketplace = () => {
                     mb: 3,
                   }}
                 />
-                <h3>Collection: {shortenHex(key, 4)}</h3>
+                <h3>Collection: {key}</h3>
                 <Grid container spacing={3}>
                   {currentlyListedItems[key].map((token, index2) => (
                     <Grid item lg={3} key={index2}>

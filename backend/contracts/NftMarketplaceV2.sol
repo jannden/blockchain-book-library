@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.7;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
@@ -8,7 +9,7 @@ interface IERC721Ownable is IERC721 {
   function owner() external returns (address);
 }
 
-contract NftMarketplaceV2 is ReentrancyGuard {
+contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
   /////////////////////
   //     Events      //
   /////////////////////
@@ -46,6 +47,9 @@ contract NftMarketplaceV2 is ReentrancyGuard {
 
   /// @notice UserAddress -> Deployed NFT contract addresses
   mapping(address => address[]) public nfts;
+
+  /// @notice Marketplace fee
+  uint256 public listingFee = 0.01 ether;
 
   /////////////////////
   //    Modifiers    //
@@ -90,16 +94,26 @@ contract NftMarketplaceV2 is ReentrancyGuard {
     uint256 _price
   )
     external
+    payable
     notYetListed(_nftAddress, _tokenId, msg.sender)
     tokenOwner(_nftAddress, _tokenId, msg.sender)
   {
     require(_price > 0, "Price not set.");
+    require(msg.value == listingFee, "Listing fee not met.");
     IERC721 nft = IERC721(_nftAddress);
     require(
       nft.getApproved(_tokenId) == address(this),
       "Approve marketplace first."
     );
+
+    // Set the price of the token (which lists it in the marketplace)
     listings[_nftAddress][_tokenId] = _price;
+
+    // Add the listing fee to the funds for the contract owner
+    address owner = owner();
+    funds[owner] += msg.value;
+
+    // Emit event
     emit ItemListed(msg.sender, _nftAddress, _tokenId, _price);
   }
 
@@ -162,8 +176,15 @@ contract NftMarketplaceV2 is ReentrancyGuard {
   /// @notice Method for withdrawing earned funds
   function withdrawFunds() external {
     require(funds[msg.sender] > 0, "No funds to withdraw.");
+    uint256 amountToWithdraw = funds[msg.sender];
     funds[msg.sender] = 0;
-    (bool success, ) = payable(msg.sender).call{value: funds[msg.sender]}("");
+    (bool success, ) = payable(msg.sender).call{value: amountToWithdraw}("");
     require(success, "Transfer failed");
+  }
+
+  /// @notice Method for changing the listing fee
+  function setListingFee(uint256 _newFee) external onlyOwner {
+    require(_newFee > 0, "Fee should be above zero.");
+    listingFee = _newFee;
   }
 }

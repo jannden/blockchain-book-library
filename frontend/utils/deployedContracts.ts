@@ -1,7 +1,7 @@
 // Info about deployed contracts
 export const deployedElection = {
   name: "Election",
-  address: "0x95b6D83bD618f5D6873201A2F30F111e8D319546"
+  address: "0x786C9492455feD1b932BdFBa99bF1308EC600aB5"
 }
 
 export const deployedBookLibrary = {
@@ -11,5 +11,5 @@ export const deployedBookLibrary = {
 
 export const deployedNftMarketplace = {
   name: "NftMarketplaceV2",
-  address: "0xE80F6996A58dCb70dfC14D52663F3790279CaB47"
+  address: "0x4003D3e55E1B41d8fbdCc9b6aAB6D68b82978Bc1"
 }
