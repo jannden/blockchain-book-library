@@ -150,12 +150,7 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
     funds[owner] += msg.value;
     delete (listings[_nftAddress][_tokenId]);
     IERC721(_nftAddress).safeTransferFrom(owner, msg.sender, _tokenId);
-    emit ItemBought(
-      msg.sender,
-      _nftAddress,
-      _tokenId,
-      listings[_nftAddress][_tokenId]
-    );
+    emit ItemBought(msg.sender, _nftAddress, _tokenId, msg.value);
   }
 
   /// @notice Method for storing addresses of NFT contracts deployed by users

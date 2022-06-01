@@ -13,7 +13,7 @@ If you want to change anything in the ../backend/contracts/NftMarketplaceV2.sol,
 
 1. $ cd backend
 2. Update the contract
-3. $ npx hardhat deploy --network rinkeby --contract NftMarketplace
+3. $ npx hardhat deploy --network rinkeby --contract NftMarketplaceV2
 4. Copy the contract's deployed address to: ../frontend/utils/deployedContracts.ts and to ../subgraph/subgraph.yaml
 5. Copy the whole file from ../backend/artifacts/contracts/NftMarketplaceV2.sol/NftMarketplaceV2.json to ../frontend/contracts
 6. Copy just the ABI array from ../backend/artifacts/contracts/NftMarketplaceV2.sol/NftMarketplaceV2.json to ../subgraph/abis/NftMarketplaceV2.json

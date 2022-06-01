@@ -33,7 +33,7 @@ const useGraph = () => {
   });
   const [_, setRefreshGraph] = useState(0);
 
-  const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v0.8";
+  const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v1.1";
   const graphQuery = `
       query {
       itemListeds {
@@ -292,7 +292,7 @@ const Marketplace = () => {
     const collectionContract = await getCollectionContract(signer, null, [
       inputs.nftName,
       inputs.nftSymbol,
-      deployedNftMarketplace.address,
+      nftMarketplaceContract.address,
     ]);
 
     // Storing collection address in the marketplace
@@ -303,7 +303,6 @@ const Marketplace = () => {
         link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
-      await tx.wait();
       setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
     } catch (error) {
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
@@ -379,9 +378,14 @@ const Marketplace = () => {
 
       // List item
       setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
-      tx = await nftMarketplaceContract.listItem(inputs.nftAddress, inputs.tokenId, inputs.price, {
-        value: listingFee,
-      });
+      tx = await nftMarketplaceContract.listItem(
+        inputs.nftAddress,
+        inputs.tokenId,
+        ethers.utils.parseEther(inputs.price),
+        {
+          value: listingFee,
+        }
+      );
       setInfo({
         info: "Transaction pending...",
         link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
