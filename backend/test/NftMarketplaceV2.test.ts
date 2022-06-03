@@ -31,7 +31,25 @@ describe("NftMarketplaceV2", function () {
   });
 
   /// //////////////////
-  //    Deploying    //
+  //   Marketplace   //
+  /// //////////////////
+  it("Should not set zero marketplace fee", async function () {
+    await expect(nftMarketplaceContract.setListingFee(0)).to.be.revertedWith(
+      "Fee should be above zero."
+    );
+  });
+
+  it("Should set marketplace fee", async function () {
+    const fee = ethers.utils.parseEther("0.5");
+
+    const tx = await nftMarketplaceContract.setListingFee(fee);
+    await tx.wait();
+
+    expect(await nftMarketplaceContract.listingFee()).to.equal(fee);
+  });
+
+  /// //////////////////
+  //   Collections   //
   /// //////////////////
 
   it("Should deploy a collection", async function () {
@@ -43,6 +61,22 @@ describe("NftMarketplaceV2", function () {
     );
     await collectionContract.deployed();
 
+    expect(await collectionContract.totalSupply()).to.equal(0);
+  });
+
+  it("Should not add collection by not owner", async function () {
+    const actor = 2;
+
+    await expect(
+      nftMarketplaceContract
+        .connect(accounts[actor])
+        .addCollection(collectionContract.address)
+    ).to.be.revertedWith("Only collection owner can add it.");
+  });
+
+  it("Should add collection", async function () {
+    const actor = 1;
+
     await expect(
       nftMarketplaceContract
         .connect(accounts[actor])
@@ -50,6 +84,16 @@ describe("NftMarketplaceV2", function () {
     )
       .to.emit(nftMarketplaceContract, "CollectionAdded")
       .withArgs(accounts[actor].address, collectionContract.address);
+  });
+
+  it("Should not add collection twice", async function () {
+    const actor = 1;
+
+    await expect(
+      nftMarketplaceContract
+        .connect(accounts[actor])
+        .addCollection(collectionContract.address)
+    ).to.be.revertedWith("Collection already exists.");
   });
 
   it("Should mint a new token", async function () {
@@ -90,7 +134,7 @@ describe("NftMarketplaceV2", function () {
     ).to.be.revertedWith("Approve marketplace first.");
   });
 
-  it("Should not list not-owned token for sale", async function () {
+  it("Should not list not-approved token for sale", async function () {
     const tokenId = 0;
     const actor = 2;
 
@@ -103,15 +147,38 @@ describe("NftMarketplaceV2", function () {
     );
   });
 
-  it("Should not set zero-price token for sale", async function () {
+  it("Should approve token for sale", async function () {
     const tokenId = 0;
-    const price = 0;
     const actor = 1;
 
     const tx = await collectionContract
       .connect(accounts[actor])
       .approve(nftMarketplaceContract.address, tokenId);
     await tx.wait();
+  });
+
+  it("Should not list not-owned token for sale", async function () {
+    const tokenId = 0;
+    const price = ethers.utils.parseEther("1");
+    const actor = 2;
+
+    const listingFee = await nftMarketplaceContract
+      .connect(accounts[actor])
+      .listingFee();
+
+    await expect(
+      nftMarketplaceContract
+        .connect(accounts[actor])
+        .listItem(collectionContract.address, tokenId, price, {
+          value: listingFee,
+        })
+    ).to.be.revertedWith("Should be owner of the token.");
+  });
+
+  it("Should not set zero-price token for sale", async function () {
+    const tokenId = 0;
+    const price = 0;
+    const actor = 1;
 
     const listingFee = await nftMarketplaceContract
       .connect(accounts[actor])
@@ -175,6 +242,44 @@ describe("NftMarketplaceV2", function () {
       );
   });
 
+  it("Should not set token for sale twice", async function () {
+    const tokenId = 0;
+    const price = ethers.utils.parseEther("1");
+    const actor = 1;
+
+    const tx = await collectionContract
+      .connect(accounts[actor])
+      .approve(nftMarketplaceContract.address, tokenId);
+    await tx.wait();
+
+    const listingFee = await nftMarketplaceContract
+      .connect(accounts[actor])
+      .listingFee();
+
+    await expect(
+      nftMarketplaceContract
+        .connect(accounts[actor])
+        .listItem(collectionContract.address, tokenId, price, {
+          value: listingFee,
+        })
+    ).to.be.revertedWith("Shouldn't be listed.");
+  });
+
+  /// //////////////////
+  //    Cancelling   //
+  /// //////////////////
+
+  it("Should not cancel if not owner", async function () {
+    const tokenId = 0;
+    const actor = 2;
+
+    await expect(
+      nftMarketplaceContract
+        .connect(accounts[actor])
+        .cancelListing(collectionContract.address, tokenId)
+    ).to.be.revertedWith("Caller isn't owner or nft contract.");
+  });
+
   it("Should cancel listed item", async function () {
     const tokenId = 0;
     const actor = 1;
@@ -188,9 +293,32 @@ describe("NftMarketplaceV2", function () {
       .withArgs(accounts[actor].address, collectionContract.address, tokenId);
   });
 
+  it("Should not cancel not listed item", async function () {
+    const tokenId = 0;
+    const actor = 1;
+
+    await expect(
+      nftMarketplaceContract
+        .connect(accounts[actor])
+        .cancelListing(collectionContract.address, tokenId)
+    ).to.be.revertedWith("Should be listed.");
+  });
+
   /// //////////////////
   //     Buying     //
   /// //////////////////
+
+  it("Should not buy not listed item", async function () {
+    const tokenId = 0;
+    const price = ethers.utils.parseEther("1");
+    const actor = 2;
+
+    await expect(
+      nftMarketplaceContract
+        .connect(accounts[actor])
+        .buyItem(collectionContract.address, tokenId, { value: price })
+    ).to.be.revertedWith("Should be listed.");
+  });
 
   it("Should set token for sale again", async function () {
     const tokenId = 0;
@@ -220,6 +348,18 @@ describe("NftMarketplaceV2", function () {
         tokenId,
         price
       );
+  });
+
+  it("Should not sell for incorrect price", async function () {
+    const tokenId = 0;
+    const price = ethers.utils.parseEther("0.5");
+    const actor = 2;
+
+    await expect(
+      nftMarketplaceContract
+        .connect(accounts[actor])
+        .buyItem(collectionContract.address, tokenId, { value: price })
+    ).to.be.revertedWith("Price mismatch.");
   });
 
   it("Should sell market item", async function () {

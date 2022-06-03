@@ -7,6 +7,7 @@ import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { grey } from "@mui/material/colors";
 import { parseBalance, shortenHex } from "../utils/util";
+import { DialogActionTypes } from "../utils/types";
 
 type TokenData = {
   nftAddress: string;
@@ -14,11 +15,13 @@ type TokenData = {
   tokenUri: string;
   price?: string;
   owner?: string;
+  currentlyListed?: boolean;
 };
 
 type MediaCardProps = {
   tokenData: TokenData;
   handlePurchase?: (nftAddress: string, tokenId: string, price: string) => Promise<void>;
+  handleActiveToken?: (action: DialogActionTypes, nftAddress: string, tokenId: string) => void;
   transactionInProgress?: boolean;
 };
 
@@ -30,6 +33,7 @@ type TokenMetadata = {
 export default function MediaCard({
   tokenData,
   handlePurchase,
+  handleActiveToken,
   transactionInProgress,
 }: MediaCardProps) {
   const [loading, setLoading] = useState<Boolean>(true);
@@ -87,6 +91,38 @@ export default function MediaCard({
           >
             Buy
           </Button>
+        )}
+
+        {handleActiveToken && (
+          <>
+            {tokenData.currentlyListed ? (
+              <Button
+                size="small"
+                onClick={handleActiveToken.bind(
+                  this,
+                  DialogActionTypes.CANCEL,
+                  tokenData.nftAddress,
+                  tokenData.tokenId
+                )}
+                disabled={transactionInProgress}
+              >
+                Cancel
+              </Button>
+            ) : (
+              <Button
+                size="small"
+                onClick={handleActiveToken.bind(
+                  this,
+                  DialogActionTypes.LIST,
+                  tokenData.nftAddress,
+                  tokenData.tokenId
+                )}
+                disabled={transactionInProgress}
+              >
+                Sell
+              </Button>
+            )}
+          </>
         )}
       </CardActions>
     </Card>

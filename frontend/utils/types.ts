@@ -45,3 +45,18 @@ export const defaultMarketplaceData: MarketplaceData = {
   userAllCollections: [],
   setRefreshGraph: [],
 };
+
+export type ActiveToken = {
+  nftAddress: string;
+  tokenId: string;
+};
+
+export const defaultActiveToken: ActiveToken = {
+  nftAddress: "",
+  tokenId: "",
+};
+
+export enum DialogActionTypes {
+  LIST,
+  CANCEL,
+}

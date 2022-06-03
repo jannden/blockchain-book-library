@@ -32,7 +32,7 @@ export default async function handler({ query: { address } }, res) {
     }),
     "nftAddress",
     "tokenId"
-  ).filter((el: any) => el.owner != account.toLowerCase());
+  );
 
   /*
    * Get items owned by the user grouped by NFT collections
@@ -81,8 +81,16 @@ export default async function handler({ query: { address } }, res) {
     }
   }
 
+  // Check which user items are currently listed
+  const enhancedUserItems = userItems.map((item) => {
+    const currentlyListed = currentlyListedItems.some((f) => {
+      return f.nftAddress === item.nftAddress && f.tokenId === item.tokenId;
+    });
+    return { ...item, currentlyListed };
+  });
+
   // Add collections that the user hasn't deployed but owns tokens from
-  const mixOfCollections = [...userMintableCollections, ...userItems].map(
+  const mixOfCollections = [...userMintableCollections, ...enhancedUserItems].map(
     (item) => item.nftAddress
   );
   const userAllCollections = mixOfCollections
@@ -91,7 +99,7 @@ export default async function handler({ query: { address } }, res) {
 
   res.status(200).json({
     currentlyListedItems: groupBy(currentlyListedItems, "nftAddress"),
-    userItems: groupBy(userItems, "nftAddress"),
+    userItems: groupBy(enhancedUserItems, "nftAddress"),
     userMintableCollections,
     userAllCollections,
   });

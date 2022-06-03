@@ -19,6 +19,11 @@ import TextField from "@mui/material/TextField";
 import MenuItem from "@mui/material/MenuItem";
 import Link from "@mui/material/Link";
 import Alert from "@mui/material/Alert";
+import Dialog from "@mui/material/Dialog";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import DialogContentText from "@mui/material/DialogContentText";
+import DialogTitle from "@mui/material/DialogTitle";
 import MediaCard from "../components/MediaCard";
 import {
   InfoType,
@@ -26,13 +31,19 @@ import {
   defaultInputs,
   MarketplaceData,
   defaultMarketplaceData,
+  ActiveToken,
+  defaultActiveToken,
+  DialogActionTypes,
 } from "../utils/types";
 
 const Marketplace = () => {
   const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
   const { library, account, chainId } = useWeb3React<Web3Provider>();
 
+  const [listDialogOpen, setListDialogOpen] = useState<boolean>(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState<boolean>(false);
   const [marketplaceData, setMarketplaceData] = useState<MarketplaceData>(defaultMarketplaceData);
+  const [activeToken, setActiveToken] = useState<ActiveToken>(defaultActiveToken);
   const [transactionInProgress, setTransactionInProgress] = useState<boolean>(false);
   const [info, setInfo] = useState<InfoType>({});
   const [inputs, setInputs] = useState<Inputs>(defaultInputs);
@@ -74,6 +85,25 @@ const Marketplace = () => {
         setInputs((inputs) => ({ ...inputs, tokenImage: e.target.files?.[0]?.name || "" }));
         break;
     }
+  };
+
+  const handleActiveToken = (action: DialogActionTypes, nftAddress: string, tokenId: string) => {
+    setActiveToken({ nftAddress, tokenId });
+
+    switch (action) {
+      case DialogActionTypes.LIST:
+        setListDialogOpen(true);
+        break;
+      case DialogActionTypes.CANCEL:
+        setCancelDialogOpen(true);
+        break;
+    }
+  };
+
+  const closeDialogs = () => {
+    setActiveToken(defaultActiveToken);
+    setListDialogOpen(false);
+    setCancelDialogOpen(false);
   };
 
   /////////////////////
@@ -166,18 +196,22 @@ const Marketplace = () => {
 
   const listItem = async () => {
     // Checking user input
-    if (!inputs.nftAddress || !inputs.tokenId || !inputs.price) {
+    if (!activeToken.nftAddress || !activeToken.tokenId || !inputs.price) {
       setInfo({ error: "Fill out the fields." });
       return;
     }
     setInfo({});
     setTransactionInProgress(true);
+    setListDialogOpen(false);
 
     try {
       // Preparing the contract
       const signer = library.getSigner(account);
-      const collectionContract = await getCollectionContract(signer, inputs.nftAddress, null);
-      let tx = await collectionContract.approve(nftMarketplaceContract.address, inputs.tokenId);
+      const collectionContract = await getCollectionContract(signer, activeToken.nftAddress, null);
+      let tx = await collectionContract.approve(
+        nftMarketplaceContract.address,
+        activeToken.tokenId
+      );
       setInfo({
         info: "Transaction pending...",
         link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
@@ -191,8 +225,8 @@ const Marketplace = () => {
       // List item
       setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
       tx = await nftMarketplaceContract.listItem(
-        inputs.nftAddress,
-        inputs.tokenId,
+        activeToken.nftAddress,
+        activeToken.tokenId,
         ethers.utils.parseEther(inputs.price),
         {
           value: listingFee,
@@ -218,15 +252,19 @@ const Marketplace = () => {
 
   const cancelListing = async () => {
     // Checking user input
-    if (!inputs.nftAddress || !inputs.tokenId) {
+    if (!activeToken.nftAddress || !activeToken.tokenId) {
       setInfo({ error: "Fill out the fields." });
       return;
     }
     setInfo({});
     setTransactionInProgress(true);
+    setCancelDialogOpen(false);
 
     try {
-      const tx = await nftMarketplaceContract.cancelListing(inputs.nftAddress, inputs.tokenId);
+      const tx = await nftMarketplaceContract.cancelListing(
+        activeToken.nftAddress,
+        activeToken.tokenId
+      );
       setInfo({
         info: "Transaction pending...",
         link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
@@ -240,61 +278,6 @@ const Marketplace = () => {
       setTransactionInProgress(false);
     }
   };
-
-  /////////////////////
-  //     Buy Item    //
-  /////////////////////
-
-  const handlePurchase = async (nftAddress, tokenId, price) => {
-    // Checking user input
-    if (!nftAddress || !tokenId || !price) {
-      setInfo({ error: "Fill out the fields." });
-      return;
-    }
-    setInfo({});
-    setTransactionInProgress(true);
-
-    try {
-      const tx = await nftMarketplaceContract.buyItem(nftAddress, tokenId, { value: price });
-      setInfo({
-        info: "Transaction pending...",
-        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
-        hash: shortenHex(tx.hash),
-      });
-      await tx.wait();
-      setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
-    } catch (error) {
-      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
-    } finally {
-      setTransactionInProgress(false);
-    }
-  };
-
-  /////////////////////
-  // Withdraw Funds  //
-  /////////////////////
-
-  /*
-  const withdrawFunds = async () => {
-    setInfo({});
-    setTransactionInProgress(true);
-
-    try {
-      const tx = await nftMarketplaceContract.withdrawFunds();
-      setInfo({
-        info: "Transaction pending...",
-        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
-        hash: shortenHex(tx.hash),
-      });
-      await tx.wait();
-      setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
-    } catch (error) {
-      setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
-    } finally {
-      setTransactionInProgress(false);
-    }
-  };
-  */
 
   return (
     <>
@@ -406,95 +389,6 @@ const Marketplace = () => {
             </Box>
           </Paper>
         </Grid>
-        <Grid item lg={3}>
-          <Paper
-            sx={{
-              p: 2,
-            }}
-          >
-            <Box
-              sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
-            >
-              <h3>List token</h3>
-              <TextField
-                select
-                label="NFT Collection"
-                name="nftAddress"
-                value={inputs.nftAddress}
-                onChange={inputHandler}
-                disabled={transactionInProgress}
-              >
-                {marketplaceData.userAllCollections &&
-                  marketplaceData.userAllCollections.map((item, index) => (
-                    <MenuItem key={shortenHex(item.nftAddress)} value={item.nftAddress}>
-                      {shortenHex(item.nftAddress)}
-                    </MenuItem>
-                  ))}
-              </TextField>
-              <TextField
-                variant="outlined"
-                name="tokenId"
-                type="number"
-                label="Token Id"
-                onChange={inputHandler}
-                value={inputs.tokenId}
-                disabled={transactionInProgress}
-              />
-              <TextField
-                variant="outlined"
-                name="price"
-                type="number"
-                label="Price"
-                onChange={inputHandler}
-                value={inputs.price}
-                disabled={transactionInProgress}
-              />
-              <Button variant="contained" onClick={listItem} disabled={transactionInProgress}>
-                List token
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
-        <Grid item lg={3}>
-          <Paper
-            sx={{
-              p: 2,
-            }}
-          >
-            <Box
-              sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
-            >
-              <h3>Cancel listing</h3>
-              <TextField
-                select
-                label="NFT Collection"
-                name="nftAddress"
-                value={inputs.nftAddress}
-                onChange={inputHandler}
-                disabled={transactionInProgress}
-              >
-                {marketplaceData.userAllCollections &&
-                  marketplaceData.userAllCollections.map((item, index) => (
-                    <MenuItem key={shortenHex(item.nftAddress)} value={item.nftAddress}>
-                      {shortenHex(item.nftAddress)}
-                    </MenuItem>
-                  ))}
-              </TextField>
-              <TextField
-                variant="outlined"
-                name="tokenId"
-                type="number"
-                label="Token Id"
-                onChange={inputHandler}
-                value={inputs.tokenId}
-                disabled={transactionInProgress}
-              />
-              <Button variant="contained" onClick={cancelListing} disabled={transactionInProgress}>
-                Cancel listing
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
         <Grid item lg={12}>
           <h2>Owned tokens grouped by NFT collections (Minted + Bought / Listed + Not Listed)</h2>
 
@@ -511,46 +405,53 @@ const Marketplace = () => {
                 <Grid container spacing={3}>
                   {marketplaceData.userItems[key].map((token, index2) => (
                     <Grid item lg={3} key={index2}>
-                      <MediaCard tokenData={token}></MediaCard>
+                      <MediaCard
+                        tokenData={token}
+                        handleActiveToken={handleActiveToken}
+                      ></MediaCard>
                     </Grid>
                   ))}
                 </Grid>
               </Box>
             ))}
         </Grid>
-        <Grid item lg={12}>
-          <h2>Tokens for sale (with option to buy)</h2>
-          {marketplaceData.currentlyListedItems &&
-            Object.keys(marketplaceData.currentlyListedItems).map((key, index) => (
-              <>
-                {marketplaceData.currentlyListedItems[key].owner != account.toLowerCase() ? (
-                  <Box key={index}>
-                    <Divider
-                      sx={{
-                        mt: 5,
-                        mb: 3,
-                      }}
-                    />
-                    <h3>Collection: {key}</h3>
-                    <Grid container spacing={3}>
-                      {marketplaceData.currentlyListedItems[key].map((token, index2) => (
-                        <Grid item lg={3} key={index2}>
-                          <MediaCard
-                            tokenData={token}
-                            handlePurchase={handlePurchase}
-                            transactionInProgress={transactionInProgress}
-                          ></MediaCard>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </Box>
-                ) : (
-                  <></>
-                )}
-              </>
-            ))}
-        </Grid>
       </Grid>
+      <Dialog open={listDialogOpen} onClose={closeDialogs}>
+        <DialogTitle>List token</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Which price do you want to sell the token for?</DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            name="price"
+            label="Price"
+            type="number"
+            fullWidth
+            variant="standard"
+            onChange={inputHandler}
+            value={inputs.price}
+            disabled={transactionInProgress}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDialogs}>Cancel</Button>
+          <Button onClick={listItem}>List Item</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={cancelDialogOpen} onClose={closeDialogs}>
+        <DialogTitle>Cancel listing</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Do you want to remove the token from the marketplace?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDialogs}>Disagree</Button>
+          <Button onClick={cancelListing} autoFocus>
+            Agree
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Backdrop
         sx={{ color: "#fff", flexDirection: "column", zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={transactionInProgress}

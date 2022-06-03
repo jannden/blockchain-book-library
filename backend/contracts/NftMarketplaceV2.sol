@@ -134,7 +134,7 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
     address owner = nft.ownerOf(_tokenId);
     require(
       msg.sender == owner || msg.sender == _nftAddress,
-      "Caller not allowed to can cancel."
+      "Caller isn't owner or nft contract."
     );
     delete (listings[_nftAddress][_tokenId]);
     emit ItemCanceled(msg.sender, _nftAddress, _tokenId);
@@ -168,9 +168,7 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
       "Only collection owner can add it."
     );
     for (uint256 i = 0; i < nfts[msg.sender].length; i++) {
-      if (nfts[msg.sender][i] == _nftAddress) {
-        revert("Collection already exists");
-      }
+      require(nfts[msg.sender][i] != _nftAddress, "Collection already exists.");
     }
     nfts[msg.sender].push(_nftAddress);
     emit CollectionAdded(msg.sender, _nftAddress);

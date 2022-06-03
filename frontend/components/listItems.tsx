@@ -10,12 +10,23 @@ import MenuBook from "@mui/icons-material/MenuBook";
 
 export const mainListItems = (
   <React.Fragment>
-    <Link href="/marketplace">
+    <ListSubheader component="div" inset>
+      NFT Marketplace
+    </ListSubheader>
+    <Link href="/listedTokens">
       <ListItemButton>
         <ListItemIcon>
           <ShoppingCartIcon />
         </ListItemIcon>
-        <ListItemText primary="NFT Marketplace" />
+        <ListItemText primary="For sale" />
+      </ListItemButton>
+    </Link>
+    <Link href="/myTokens">
+      <ListItemButton>
+        <ListItemIcon>
+          <ShoppingCartIcon />
+        </ListItemIcon>
+        <ListItemText primary="My tokens" />
       </ListItemButton>
     </Link>
   </React.Fragment>
