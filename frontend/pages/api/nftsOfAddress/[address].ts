@@ -1,6 +1,4 @@
-import type { JsonRpcSigner } from "@ethersproject/providers";
 import { ethers } from "ethers";
-import nftCollectionFactory from "../../../contracts/NftCollection.json";
 import { createClient } from "urql";
 import {
   graphUrl,
@@ -98,7 +96,11 @@ export default async function handler({ query: { address } }, res) {
     .map((item) => ({ nftAddress: item }));
 
   res.status(200).json({
-    currentlyListedItems: groupBy(currentlyListedItems, "nftAddress"),
+    allListedItems: groupBy(currentlyListedItems, "nftAddress"),
+    listedItemsByOthers: groupBy(
+      currentlyListedItems.filter((el: any) => el.owner != account.toLowerCase()),
+      "nftAddress"
+    ),
     userItems: groupBy(enhancedUserItems, "nftAddress"),
     userMintableCollections,
     userAllCollections,

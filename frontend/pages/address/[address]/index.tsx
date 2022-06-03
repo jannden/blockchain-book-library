@@ -1,36 +1,26 @@
 import Grid from "@mui/material/Grid";
-import Divider from "@mui/material/Divider";
 import Box from "@mui/material/Box";
 import MediaCard from "../../../components/MediaCard";
+import { shortenHex } from "../../../utils/util";
 
-const AddressTokens = ({ marketplaceData }) => {
+const AddressTokens = ({ owner, marketplaceData }) => {
   return (
     <>
-      <Grid container spacing={3}>
-        <Grid item lg={12}>
-          <h2>Owned tokens grouped by NFT collections (Minted + Bought / Listed + Not Listed)</h2>
+      <h3>Tokens owned by {shortenHex(owner)}</h3>
 
-          {marketplaceData.userItems &&
-            Object.keys(marketplaceData.userItems).map((key, index) => (
-              <Box key={index}>
-                <Divider
-                  sx={{
-                    mt: 5,
-                    mb: 3,
-                  }}
-                />
-                <h3>Collection: {key}</h3>
-                <Grid container spacing={3}>
-                  {marketplaceData.userItems[key].map((token, index2) => (
-                    <Grid item lg={3} key={index2}>
-                      <MediaCard tokenData={token}></MediaCard>
-                    </Grid>
-                  ))}
+      {marketplaceData.userItems &&
+        Object.keys(marketplaceData.userItems).map((key, index) => (
+          <Box key={index}>
+            <h3>Collection: {key}</h3>
+            <Grid container spacing={3}>
+              {marketplaceData.userItems[key].map((token, index2) => (
+                <Grid item lg={3} key={index2}>
+                  <MediaCard tokenData={token}></MediaCard>
                 </Grid>
-              </Box>
-            ))}
-        </Grid>
-      </Grid>
+              ))}
+            </Grid>
+          </Box>
+        ))}
     </>
   );
 };
@@ -44,6 +34,7 @@ export const getServerSideProps = async (context) => {
   const marketplaceData = await res.json();
   return {
     props: {
+      owner: context.params.address,
       marketplaceData,
     },
   };

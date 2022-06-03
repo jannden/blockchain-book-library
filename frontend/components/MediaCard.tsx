@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import NextLink from "next/link";
 import Card from "@mui/material/Card";
 import CardActions from "@mui/material/CardActions";
 import CardContent from "@mui/material/CardContent";
@@ -6,6 +7,7 @@ import CardMedia from "@mui/material/CardMedia";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import { grey } from "@mui/material/colors";
+import { Link as MUILink } from "@mui/material";
 import { parseBalance, shortenHex } from "../utils/util";
 import { DialogActionTypes } from "../utils/types";
 
@@ -56,7 +58,6 @@ export default function MediaCard({
   if (loading) {
     return null;
   }
-
   return (
     <Card sx={{ maxWidth: 345, backgroundColor: grey[50] }}>
       <CardMedia component="img" height="140" image={tokenMetadata.tokenImage} />
@@ -70,9 +71,12 @@ export default function MediaCard({
           {tokenData.owner && (
             <>
               Owner:{" "}
-              <a href={`${process.env.NEXT_PUBLIC_SERVER}/address/${tokenData.owner}`}>
-                ${shortenHex(tokenData.owner, 4)}
-              </a>
+              <NextLink
+                href={`${process.env.NEXT_PUBLIC_SERVER}/address/${tokenData.owner}`}
+                passHref
+              >
+                <MUILink variant="body2">{shortenHex(tokenData.owner)}</MUILink>
+              </NextLink>
             </>
           )}
         </Typography>
@@ -80,7 +84,7 @@ export default function MediaCard({
       <CardActions sx={{ justifyContent: "center" }}>
         {handlePurchase && (
           <Button
-            size="small"
+            variant="contained"
             onClick={handlePurchase.bind(
               this,
               tokenData.nftAddress,
@@ -97,7 +101,7 @@ export default function MediaCard({
           <>
             {tokenData.currentlyListed ? (
               <Button
-                size="small"
+                variant="contained"
                 onClick={handleActiveToken.bind(
                   this,
                   DialogActionTypes.CANCEL,
@@ -110,7 +114,7 @@ export default function MediaCard({
               </Button>
             ) : (
               <Button
-                size="small"
+                variant="contained"
                 onClick={handleActiveToken.bind(
                   this,
                   DialogActionTypes.LIST,

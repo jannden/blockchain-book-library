@@ -31,7 +31,8 @@ export type EventData = {
 };
 
 export type MarketplaceData = {
-  currentlyListedItems: Array<EventData>;
+  allListedItems: Array<EventData>;
+  listedItemsByOthers: Array<EventData>;
   userItems: Array<EventData>;
   userMintableCollections: Array<EventData>;
   userAllCollections: Array<EventData>;
@@ -39,7 +40,8 @@ export type MarketplaceData = {
 };
 
 export const defaultMarketplaceData: MarketplaceData = {
-  currentlyListedItems: [],
+  allListedItems: [],
+  listedItemsByOthers: [],
   userItems: [],
   userMintableCollections: [],
   userAllCollections: [],

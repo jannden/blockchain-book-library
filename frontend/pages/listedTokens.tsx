@@ -75,40 +75,23 @@ const Marketplace = () => {
           {info.error}
         </Alert>
       )}
-      <Grid container spacing={3}>
-        <Grid item lg={12}>
-          <h2>Tokens for sale (with option to buy)</h2>
-          {marketplaceData.currentlyListedItems &&
-            Object.keys(marketplaceData.currentlyListedItems).map((key, index) => (
-              <>
-                {marketplaceData.currentlyListedItems[key].owner != account.toLowerCase() ? (
-                  <Box key={index}>
-                    <Divider
-                      sx={{
-                        mt: 5,
-                        mb: 3,
-                      }}
-                    />
-                    <h3>Collection: {key}</h3>
-                    <Grid container spacing={3}>
-                      {marketplaceData.currentlyListedItems[key].map((token, index2) => (
-                        <Grid item lg={3} key={index2}>
-                          <MediaCard
-                            tokenData={token}
-                            handlePurchase={handlePurchase}
-                            transactionInProgress={transactionInProgress}
-                          ></MediaCard>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </Box>
-                ) : (
-                  <></>
-                )}
-              </>
-            ))}
-        </Grid>
-      </Grid>
+      {marketplaceData.listedItemsByOthers &&
+        Object.keys(marketplaceData.listedItemsByOthers).map((key, index) => (
+          <Box key={index}>
+            <h3>Collection: {key}</h3>
+            <Grid container spacing={3}>
+              {marketplaceData.listedItemsByOthers[key].map((token, index2) => (
+                <Grid item lg={3} key={index2}>
+                  <MediaCard
+                    tokenData={token}
+                    handlePurchase={handlePurchase}
+                    transactionInProgress={transactionInProgress}
+                  ></MediaCard>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+        ))}
       <Backdrop
         sx={{ color: "#fff", flexDirection: "column", zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={transactionInProgress}

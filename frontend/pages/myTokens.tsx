@@ -299,7 +299,7 @@ const Marketplace = () => {
               p: 2,
             }}
           >
-            <h3>Create NFT Collection</h3>
+            <h3>Create Collection</h3>
             <Box
               sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
             >
@@ -338,15 +338,7 @@ const Marketplace = () => {
             <Box
               sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
             >
-              <h3>Mint a new token</h3>
-              <TextField
-                variant="outlined"
-                name="tokenName"
-                label="Token Name"
-                onChange={inputHandler}
-                value={inputs.tokenName}
-                disabled={transactionInProgress}
-              />
+              <h3>Mint Token</h3>
               <TextField
                 select
                 label="NFT Collection"
@@ -362,6 +354,14 @@ const Marketplace = () => {
                     </MenuItem>
                   ))}
               </TextField>
+              <TextField
+                variant="outlined"
+                name="tokenName"
+                label="Token Name"
+                onChange={inputHandler}
+                value={inputs.tokenName}
+                disabled={transactionInProgress}
+              />
               <label htmlFor="tokenImage">
                 <input
                   ref={tokenImage}
@@ -390,17 +390,9 @@ const Marketplace = () => {
           </Paper>
         </Grid>
         <Grid item lg={12}>
-          <h2>Owned tokens grouped by NFT collections (Minted + Bought / Listed + Not Listed)</h2>
-
           {marketplaceData.userItems &&
             Object.keys(marketplaceData.userItems).map((key, index) => (
               <Box key={index}>
-                <Divider
-                  sx={{
-                    mt: 5,
-                    mb: 3,
-                  }}
-                />
                 <h3>Collection: {key}</h3>
                 <Grid container spacing={3}>
                   {marketplaceData.userItems[key].map((token, index2) => (
