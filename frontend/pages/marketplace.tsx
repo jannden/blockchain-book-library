@@ -2,6 +2,8 @@ import type { JsonRpcSigner, Web3Provider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
+import Backdrop from "@mui/material/Backdrop";
+import CircularProgress from "@mui/material/CircularProgress";
 import { ethers } from "ethers";
 import { useEffect, useState, useRef } from "react";
 import { getCollectionContract, ipfs, ipfsPath } from "../utils/util";
@@ -31,6 +33,10 @@ const Marketplace = () => {
   const { library, account, chainId } = useWeb3React<Web3Provider>();
 
   const [marketplaceData, setMarketplaceData] = useState<MarketplaceData>(defaultMarketplaceData);
+  const [transactionInProgress, setTransactionInProgress] = useState<boolean>(false);
+  const [info, setInfo] = useState<InfoType>({});
+  const [inputs, setInputs] = useState<Inputs>(defaultInputs);
+  const tokenImage = useRef(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -42,13 +48,6 @@ const Marketplace = () => {
       fetchData();
     }
   }, [account]);
-
-  const [transactionInProgress, setTransactionInProgress] = useState<boolean>(false);
-  const [info, setInfo] = useState<InfoType>({});
-
-  const [inputs, setInputs] = useState<Inputs>(defaultInputs);
-  const [selectedCollection, setSelectedCollection] = useState("");
-  const tokenImage = useRef(null);
 
   const inputHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -84,8 +83,10 @@ const Marketplace = () => {
   const deployCollection = async () => {
     // Checking user input
     if (!inputs.nftName || !inputs.nftSymbol) {
-      return alert("Fill out the fields.");
+      setInfo({ error: "Fill out the fields." });
+      return;
     }
+    setInfo({});
     setTransactionInProgress(true);
 
     // Preparing the contract
@@ -123,8 +124,10 @@ const Marketplace = () => {
     // Checking user input
     const image = tokenImage.current?.files?.[0];
     if (!image || !inputs.tokenName || !inputs.nftAddress) {
-      return alert("Fill out the fields.");
+      setInfo({ error: "Fill out the fields." });
+      return;
     }
+    setInfo({});
     setTransactionInProgress(true);
 
     try {
@@ -164,8 +167,10 @@ const Marketplace = () => {
   const listItem = async () => {
     // Checking user input
     if (!inputs.nftAddress || !inputs.tokenId || !inputs.price) {
-      return alert("Fill out the fields.");
+      setInfo({ error: "Fill out the fields." });
+      return;
     }
+    setInfo({});
     setTransactionInProgress(true);
 
     try {
@@ -214,8 +219,10 @@ const Marketplace = () => {
   const cancelListing = async () => {
     // Checking user input
     if (!inputs.nftAddress || !inputs.tokenId) {
-      return alert("Fill out the fields.");
+      setInfo({ error: "Fill out the fields." });
+      return;
     }
+    setInfo({});
     setTransactionInProgress(true);
 
     try {
@@ -241,8 +248,10 @@ const Marketplace = () => {
   const handlePurchase = async (nftAddress, tokenId, price) => {
     // Checking user input
     if (!nftAddress || !tokenId || !price) {
-      return alert("Fill out the fields.");
+      setInfo({ error: "Fill out the fields." });
+      return;
     }
+    setInfo({});
     setTransactionInProgress(true);
 
     try {
@@ -265,7 +274,9 @@ const Marketplace = () => {
   // Withdraw Funds  //
   /////////////////////
 
+  /*
   const withdrawFunds = async () => {
+    setInfo({});
     setTransactionInProgress(true);
 
     try {
@@ -283,10 +294,11 @@ const Marketplace = () => {
       setTransactionInProgress(false);
     }
   };
+  */
 
   return (
     <>
-      {info.info && (
+      {info.info && !transactionInProgress && (
         <Alert severity="info" sx={{ mb: 3 }}>
           {info.info}{" "}
           {info.link && info.hash && <Link href={info.link}>{shortenHex(info.hash, 4)}</Link>}
@@ -362,8 +374,8 @@ const Marketplace = () => {
               >
                 {marketplaceData.userMintableCollections &&
                   marketplaceData.userMintableCollections.map((item, index) => (
-                    <MenuItem key={item.nftAddress} value={item.nftAddress}>
-                      {shortenHex(item.nftAddress, 4)}
+                    <MenuItem key={shortenHex(item.nftAddress)} value={item.nftAddress}>
+                      {shortenHex(item.nftAddress)}
                     </MenuItem>
                   ))}
               </TextField>
@@ -414,8 +426,8 @@ const Marketplace = () => {
               >
                 {marketplaceData.userAllCollections &&
                   marketplaceData.userAllCollections.map((item, index) => (
-                    <MenuItem key={item.nftAddress} value={item.nftAddress}>
-                      {shortenHex(item.nftAddress, 4)}
+                    <MenuItem key={shortenHex(item.nftAddress)} value={item.nftAddress}>
+                      {shortenHex(item.nftAddress)}
                     </MenuItem>
                   ))}
               </TextField>
@@ -463,8 +475,8 @@ const Marketplace = () => {
               >
                 {marketplaceData.userAllCollections &&
                   marketplaceData.userAllCollections.map((item, index) => (
-                    <MenuItem key={item.nftAddress} value={item.nftAddress}>
-                      {shortenHex(item.nftAddress, 4)}
+                    <MenuItem key={shortenHex(item.nftAddress)} value={item.nftAddress}>
+                      {shortenHex(item.nftAddress)}
                     </MenuItem>
                   ))}
               </TextField>
@@ -481,16 +493,6 @@ const Marketplace = () => {
                 Cancel listing
               </Button>
             </Box>
-          </Paper>
-          <Paper
-            sx={{
-              p: 2,
-              mt: 2,
-            }}
-          >
-            <Button variant="contained" onClick={withdrawFunds} disabled={transactionInProgress}>
-              Withdraw funds
-            </Button>
           </Paper>
         </Grid>
         <Grid item lg={12}>
@@ -543,6 +545,18 @@ const Marketplace = () => {
             ))}
         </Grid>
       </Grid>
+      <Backdrop
+        sx={{ color: "#fff", flexDirection: "column", zIndex: (theme) => theme.zIndex.drawer + 1 }}
+        open={transactionInProgress}
+      >
+        <CircularProgress color="inherit" sx={{ mb: 3 }} />
+        {info.info && (
+          <Alert severity="info">
+            {info.info}{" "}
+            {info.link && info.hash && <Link href={info.link}>{shortenHex(info.hash, 4)}</Link>}
+          </Alert>
+        )}
+      </Backdrop>
     </>
   );
 };
