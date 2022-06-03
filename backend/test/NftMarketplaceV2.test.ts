@@ -259,7 +259,7 @@ describe("NftMarketplaceV2", function () {
     );
   });
 
-  it("Should withdraw funds of marketplace owner", async function () {
+  xit("Should withdraw funds of marketplace owner", async function () {
     const actor = 0;
 
     const provider = waffle.provider;

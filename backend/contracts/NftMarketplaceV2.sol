@@ -43,7 +43,10 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
   mapping(address => mapping(uint256 => uint256)) public listings;
 
   /// @notice UserAddress -> Funds
-  mapping(address => uint256) private funds;
+  // For increased security: https://fravoll.github.io/solidity-patterns/pull_over_push.html
+  // Why using call: https://consensys.github.io/smart-contract-best-practices/development-recommendations/general/external-calls/#dont-use-transfer-or-send
+  // Good practice: https://docs.soliditylang.org/en/develop/security-considerations.html?highlight=check%20effects#use-the-checks-effects-interactions-pattern
+  // mapping(address => uint256) private funds;
 
   /// @notice UserAddress -> Deployed NFT contract addresses
   mapping(address => address[]) public nfts;
@@ -95,6 +98,7 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
   )
     external
     payable
+    nonReentrant
     notYetListed(_nftAddress, _tokenId, msg.sender)
     tokenOwner(_nftAddress, _tokenId, msg.sender)
   {
@@ -111,7 +115,9 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
 
     // Add the listing fee to the funds for the contract owner
     address owner = owner();
-    funds[owner] += msg.value;
+    // funds[owner] += msg.value;
+    (bool success, ) = payable(owner).call{value: msg.value}(""); // when funds aren't used
+    require(success, "Transfer failed"); // when funds aren't used
 
     // Emit event
     emit ItemListed(msg.sender, _nftAddress, _tokenId, _price);
@@ -128,7 +134,7 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
     address owner = nft.ownerOf(_tokenId);
     require(
       msg.sender == owner || msg.sender == _nftAddress,
-      "Only token owner or NFT contract can cancel."
+      "Caller not allowed to can cancel."
     );
     delete (listings[_nftAddress][_tokenId]);
     emit ItemCanceled(msg.sender, _nftAddress, _tokenId);
@@ -147,9 +153,11 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
     require(msg.value == listings[_nftAddress][_tokenId], "Price mismatch.");
     IERC721 nft = IERC721(_nftAddress);
     address owner = nft.ownerOf(_tokenId);
-    funds[owner] += msg.value;
+    // funds[owner] += msg.value;
     delete (listings[_nftAddress][_tokenId]);
     IERC721(_nftAddress).safeTransferFrom(owner, msg.sender, _tokenId);
+    (bool success, ) = payable(owner).call{value: msg.value}(""); // when funds aren't used
+    require(success, "Transfer failed"); // when funds aren't used
     emit ItemBought(msg.sender, _nftAddress, _tokenId, msg.value);
   }
 
@@ -169,6 +177,7 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
   }
 
   /// @notice Method for withdrawing earned funds
+  /*
   function withdrawFunds() external {
     require(funds[msg.sender] > 0, "No funds to withdraw.");
     uint256 amountToWithdraw = funds[msg.sender];
@@ -176,6 +185,7 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
     (bool success, ) = payable(msg.sender).call{value: amountToWithdraw}("");
     require(success, "Transfer failed");
   }
+  */
 
   /// @notice Method for changing the listing fee
   function setListingFee(uint256 _newFee) external onlyOwner {
