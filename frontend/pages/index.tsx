@@ -15,7 +15,7 @@ function Home() {
         </Link>
       </p>
       <p>
-        <Link href="/marketplace">
+        <Link href="/listedTokens">
           <a>Marketplace</a>
         </Link>
       </p>

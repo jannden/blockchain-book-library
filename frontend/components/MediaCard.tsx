@@ -23,7 +23,7 @@ type TokenData = {
 type MediaCardProps = {
   tokenData: TokenData;
   handlePurchase?: (nftAddress: string, tokenId: string, price: string) => Promise<void>;
-  handleActiveToken?: (action: DialogActionTypes, nftAddress: string, tokenId: string) => void;
+  handleDialogOpening?: (action: DialogActionTypes, nftAddress: string, tokenId: string) => void;
   transactionInProgress?: boolean;
 };
 
@@ -35,7 +35,7 @@ type TokenMetadata = {
 export default function MediaCard({
   tokenData,
   handlePurchase,
-  handleActiveToken,
+  handleDialogOpening,
   transactionInProgress,
 }: MediaCardProps) {
   const [loading, setLoading] = useState<Boolean>(true);
@@ -97,14 +97,14 @@ export default function MediaCard({
           </Button>
         )}
 
-        {handleActiveToken && (
+        {handleDialogOpening && (
           <>
             {tokenData.currentlyListed ? (
               <Button
                 variant="contained"
-                onClick={handleActiveToken.bind(
+                onClick={handleDialogOpening.bind(
                   this,
-                  DialogActionTypes.CANCEL,
+                  DialogActionTypes.CANCEL_LISTING,
                   tokenData.nftAddress,
                   tokenData.tokenId
                 )}
@@ -115,9 +115,9 @@ export default function MediaCard({
             ) : (
               <Button
                 variant="contained"
-                onClick={handleActiveToken.bind(
+                onClick={handleDialogOpening.bind(
                   this,
-                  DialogActionTypes.LIST,
+                  DialogActionTypes.LIST_ITEM,
                   tokenData.nftAddress,
                   tokenData.tokenId
                 )}

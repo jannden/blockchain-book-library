@@ -31,19 +31,21 @@ import {
   defaultInputs,
   MarketplaceData,
   defaultMarketplaceData,
-  ActiveToken,
-  defaultActiveToken,
+  Dialogs,
+  defaultDialogs,
   DialogActionTypes,
+  DialogToken,
+  defaultDialogToken,
 } from "../utils/types";
 
 const Marketplace = () => {
   const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
   const { library, account, chainId } = useWeb3React<Web3Provider>();
 
-  const [listDialogOpen, setListDialogOpen] = useState<boolean>(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState<boolean>(false);
+  const [dialogs, setDialogs] = useState<Dialogs>(defaultDialogs);
+  const [dialogToken, setDialogToken] = useState<DialogToken>(defaultDialogToken);
+
   const [marketplaceData, setMarketplaceData] = useState<MarketplaceData>(defaultMarketplaceData);
-  const [activeToken, setActiveToken] = useState<ActiveToken>(defaultActiveToken);
   const [transactionInProgress, setTransactionInProgress] = useState<boolean>(false);
   const [info, setInfo] = useState<InfoType>({});
   const [inputs, setInputs] = useState<Inputs>(defaultInputs);
@@ -87,23 +89,35 @@ const Marketplace = () => {
     }
   };
 
-  const handleActiveToken = (action: DialogActionTypes, nftAddress: string, tokenId: string) => {
-    setActiveToken({ nftAddress, tokenId });
+  const handleDialogOpening = (
+    action: DialogActionTypes,
+    nftAddress?: string,
+    tokenId?: string
+  ) => {
+    // Update info about the token we open the dialog for
+    setDialogToken({ nftAddress, tokenId });
 
+    // Update info about which dialog is open
     switch (action) {
-      case DialogActionTypes.LIST:
-        setListDialogOpen(true);
+      case DialogActionTypes.DEPLOY_COLLECTION:
+        setDialogs((prevState) => ({ ...prevState, deployCollection: true }));
         break;
-      case DialogActionTypes.CANCEL:
-        setCancelDialogOpen(true);
+      case DialogActionTypes.MINT_TOKEN:
+        setDialogs((prevState) => ({ ...prevState, mintToken: true }));
+        break;
+      case DialogActionTypes.LIST_ITEM:
+        setDialogs((prevState) => ({ ...prevState, listItem: true }));
+        break;
+      case DialogActionTypes.CANCEL_LISTING:
+        setDialogs((prevState) => ({ ...prevState, cancelListing: true }));
         break;
     }
   };
 
   const closeDialogs = () => {
-    setActiveToken(defaultActiveToken);
-    setListDialogOpen(false);
-    setCancelDialogOpen(false);
+    // Reset dialogs
+    setDialogToken(defaultDialogToken);
+    setDialogs(defaultDialogs);
   };
 
   /////////////////////
@@ -118,6 +132,7 @@ const Marketplace = () => {
     }
     setInfo({});
     setTransactionInProgress(true);
+    setDialogs(defaultDialogs);
 
     // Preparing the contract
     setInfo({
@@ -143,6 +158,7 @@ const Marketplace = () => {
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
     } finally {
       setTransactionInProgress(false);
+      setDialogToken(defaultDialogToken);
     }
   };
 
@@ -153,12 +169,13 @@ const Marketplace = () => {
   const mintToken = async () => {
     // Checking user input
     const image = tokenImage.current?.files?.[0];
-    if (!image || !inputs.tokenName || !inputs.nftAddress) {
+    if (!image || !inputs.tokenName) {
       setInfo({ error: "Fill out the fields." });
       return;
     }
     setInfo({});
     setTransactionInProgress(true);
+    setDialogs(defaultDialogs);
 
     try {
       // Upload the image
@@ -172,7 +189,7 @@ const Marketplace = () => {
 
       // Preparing the contract
       const signer = library.getSigner(account);
-      const collectionContract = await getCollectionContract(signer, inputs.nftAddress, null);
+      const collectionContract = await getCollectionContract(signer, dialogToken.nftAddress, null);
 
       // Mint
       const tx = await collectionContract.safeMint(account, metadataPath);
@@ -187,6 +204,7 @@ const Marketplace = () => {
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
     } finally {
       setTransactionInProgress(false);
+      setDialogToken(defaultDialogToken);
     }
   };
 
@@ -196,21 +214,21 @@ const Marketplace = () => {
 
   const listItem = async () => {
     // Checking user input
-    if (!activeToken.nftAddress || !activeToken.tokenId || !inputs.price) {
+    if (!inputs.price) {
       setInfo({ error: "Fill out the fields." });
       return;
     }
     setInfo({});
     setTransactionInProgress(true);
-    setListDialogOpen(false);
+    setDialogs(defaultDialogs);
 
     try {
       // Preparing the contract
       const signer = library.getSigner(account);
-      const collectionContract = await getCollectionContract(signer, activeToken.nftAddress, null);
+      const collectionContract = await getCollectionContract(signer, dialogToken.nftAddress, null);
       let tx = await collectionContract.approve(
         nftMarketplaceContract.address,
-        activeToken.tokenId
+        dialogToken.tokenId
       );
       setInfo({
         info: "Transaction pending...",
@@ -225,8 +243,8 @@ const Marketplace = () => {
       // List item
       setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
       tx = await nftMarketplaceContract.listItem(
-        activeToken.nftAddress,
-        activeToken.tokenId,
+        dialogToken.nftAddress,
+        dialogToken.tokenId,
         ethers.utils.parseEther(inputs.price),
         {
           value: listingFee,
@@ -243,6 +261,7 @@ const Marketplace = () => {
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
     } finally {
       setTransactionInProgress(false);
+      setDialogToken(defaultDialogToken);
     }
   };
 
@@ -251,19 +270,14 @@ const Marketplace = () => {
   /////////////////////
 
   const cancelListing = async () => {
-    // Checking user input
-    if (!activeToken.nftAddress || !activeToken.tokenId) {
-      setInfo({ error: "Fill out the fields." });
-      return;
-    }
     setInfo({});
     setTransactionInProgress(true);
-    setCancelDialogOpen(false);
+    setDialogs(defaultDialogs);
 
     try {
       const tx = await nftMarketplaceContract.cancelListing(
-        activeToken.nftAddress,
-        activeToken.tokenId
+        dialogToken.nftAddress,
+        dialogToken.tokenId
       );
       setInfo({
         info: "Transaction pending...",
@@ -276,8 +290,13 @@ const Marketplace = () => {
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
     } finally {
       setTransactionInProgress(false);
+      setDialogToken(defaultDialogToken);
     }
   };
+
+  if (!!account === false) {
+    return null;
+  }
 
   return (
     <>
@@ -294,121 +313,133 @@ const Marketplace = () => {
       )}
       <Grid container spacing={3}>
         <Grid item lg={3}>
-          <Paper
-            sx={{
-              p: 2,
-            }}
+          <Button
+            variant="contained"
+            onClick={handleDialogOpening.bind(this, DialogActionTypes.DEPLOY_COLLECTION)}
+            disabled={transactionInProgress}
           >
-            <h3>Create Collection</h3>
-            <Box
-              sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
-            >
-              <TextField
-                variant="outlined"
-                name="nftName"
-                label="NFT Collection Name"
-                onChange={inputHandler}
-                value={inputs.nftName}
-                disabled={transactionInProgress}
-              />
-              <TextField
-                variant="outlined"
-                name="nftSymbol"
-                label="NFT Collection Symbol"
-                onChange={inputHandler}
-                value={inputs.nftSymbol}
-                disabled={transactionInProgress}
-              />
-              <Button
-                variant="contained"
-                onClick={deployCollection}
-                disabled={transactionInProgress}
-              >
-                Deploy Collection
-              </Button>
-            </Box>
-          </Paper>
-        </Grid>
-        <Grid item lg={3}>
-          <Paper
-            sx={{
-              p: 2,
-            }}
-          >
-            <Box
-              sx={{ display: "flex", flexDirection: "column", "& .MuiTextField-root": { mb: 2 } }}
-            >
-              <h3>Mint Token</h3>
-              <TextField
-                select
-                label="NFT Collection"
-                name="nftAddress"
-                value={inputs.nftAddress}
-                onChange={inputHandler}
-                disabled={transactionInProgress}
-              >
-                {marketplaceData.userMintableCollections &&
-                  marketplaceData.userMintableCollections.map((item, index) => (
-                    <MenuItem key={shortenHex(item.nftAddress)} value={item.nftAddress}>
-                      {shortenHex(item.nftAddress)}
-                    </MenuItem>
-                  ))}
-              </TextField>
-              <TextField
-                variant="outlined"
-                name="tokenName"
-                label="Token Name"
-                onChange={inputHandler}
-                value={inputs.tokenName}
-                disabled={transactionInProgress}
-              />
-              <label htmlFor="tokenImage">
-                <input
-                  ref={tokenImage}
-                  id="tokenImage"
-                  name="tokenImage"
-                  style={{ visibility: "hidden", height: 0, width: 0 }}
-                  type="file"
-                  accept="image/*"
-                  onChange={inputHandler}
-                  disabled={transactionInProgress}
-                />
-                <Button
-                  variant="outlined"
-                  component="span"
-                  sx={{ mb: 2, width: "100%" }}
-                  disabled={transactionInProgress}
-                >
-                  {inputs.tokenImage ? inputs.tokenImage : "Choose Image"}
-                </Button>
-              </label>
-              <Button variant="contained" onClick={mintToken} disabled={transactionInProgress}>
-                Mint NFT
-              </Button>
-              {!ipfs && <p>Oh oh, Not connected to IPFS. Checkout out the logs for errors</p>}
-            </Box>
-          </Paper>
+            Deploy a new collection
+          </Button>
         </Grid>
         <Grid item lg={12}>
-          {marketplaceData.userItems &&
-            Object.keys(marketplaceData.userItems).map((key, index) => (
-              <Box key={index}>
-                <h3>Collection: {key}</h3>
+          {marketplaceData.userAllCollections &&
+            marketplaceData.userAllCollections.map(({ nftAddress }) => (
+              <Box key={shortenHex(nftAddress)}>
+                <h3>Collection: {nftAddress}</h3>
                 <Grid container spacing={3}>
-                  {marketplaceData.userItems[key].map((token, index2) => (
-                    <Grid item lg={3} key={index2}>
-                      <MediaCard
-                        tokenData={token}
-                        handleActiveToken={handleActiveToken}
-                      ></MediaCard>
-                    </Grid>
-                  ))}
+                  {marketplaceData.userItems[nftAddress] &&
+                    marketplaceData.userItems[nftAddress].map((token, index2) => (
+                      <Grid item lg={3} key={index2}>
+                        <MediaCard
+                          tokenData={token}
+                          transactionInProgress={transactionInProgress}
+                          handleDialogOpening={handleDialogOpening}
+                        ></MediaCard>
+                      </Grid>
+                    ))}
+                  <Grid item lg={3}>
+                    <Box
+                      sx={{
+                        height: "100%",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Button
+                        variant="outlined"
+                        onClick={handleDialogOpening.bind(
+                          this,
+                          DialogActionTypes.MINT_TOKEN,
+                          nftAddress
+                        )}
+                        disabled={transactionInProgress}
+                      >
+                        Mint new token
+                      </Button>
+                    </Box>
+                  </Grid>
                 </Grid>
               </Box>
             ))}
         </Grid>
       </Grid>
-      <Dialog open={listDialogOpen} onClose={closeDialogs}>
+      <Dialog open={dialogs.deployCollection} onClose={closeDialogs}>
+        <DialogTitle>Deploy collection</DialogTitle>
+        <DialogContent>
+          <DialogContentText>Set the details for your new collection.</DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            name="nftName"
+            label="NFT Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={inputHandler}
+            value={inputs.nftName}
+            disabled={transactionInProgress}
+          />
+          <TextField
+            margin="dense"
+            name="nftSymbol"
+            label="NFT Symbol"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={inputHandler}
+            value={inputs.nftSymbol}
+            disabled={transactionInProgress}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDialogs}>Cancel</Button>
+          <Button onClick={deployCollection}>Deploy</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={dialogs.mintToken} onClose={closeDialogs}>
+        <DialogTitle>Mint token</DialogTitle>
+        <DialogContent>
+          <DialogContentText>What token would you like to mint?</DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            name="tokenName"
+            label="Token Name"
+            type="text"
+            fullWidth
+            variant="standard"
+            onChange={inputHandler}
+            value={inputs.tokenName}
+            disabled={transactionInProgress}
+          />
+          <label htmlFor="tokenImage">
+            <input
+              ref={tokenImage}
+              id="tokenImage"
+              name="tokenImage"
+              style={{ visibility: "hidden", height: 0, width: 0 }}
+              type="file"
+              accept="image/*"
+              onChange={inputHandler}
+              disabled={transactionInProgress}
+            />
+            <Button
+              variant="outlined"
+              component="span"
+              sx={{ mt: 2, width: "100%" }}
+              disabled={transactionInProgress}
+            >
+              {inputs.tokenImage ? inputs.tokenImage : "Choose Image"}
+            </Button>
+          </label>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={closeDialogs}>Cancel</Button>
+          <Button onClick={mintToken}>Mint</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={dialogs.listItem} onClose={closeDialogs}>
         <DialogTitle>List token</DialogTitle>
         <DialogContent>
           <DialogContentText>Which price do you want to sell the token for?</DialogContentText>
@@ -430,7 +461,7 @@ const Marketplace = () => {
           <Button onClick={listItem}>List Item</Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={cancelDialogOpen} onClose={closeDialogs}>
+      <Dialog open={dialogs.cancelListing} onClose={closeDialogs}>
         <DialogTitle>Cancel listing</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -452,7 +483,7 @@ const Marketplace = () => {
         {info.info && (
           <Alert severity="info">
             {info.info}{" "}
-            {info.link && info.hash && <Link href={info.link}>{shortenHex(info.hash, 4)}</Link>}
+            {info.link && info.hash && <Link href={info.link}>{shortenHex(info.hash)}</Link>}
           </Alert>
         )}
       </Backdrop>

@@ -48,17 +48,33 @@ export const defaultMarketplaceData: MarketplaceData = {
   setRefreshGraph: [],
 };
 
-export type ActiveToken = {
+export type Dialogs = {
+  deployCollection: boolean;
+  mintToken: boolean;
+  listItem: boolean;
+  cancelListing: boolean;
+};
+
+export const defaultDialogs: Dialogs = {
+  deployCollection: false,
+  mintToken: false,
+  listItem: false,
+  cancelListing: false,
+};
+
+export enum DialogActionTypes {
+  DEPLOY_COLLECTION,
+  MINT_TOKEN,
+  LIST_ITEM,
+  CANCEL_LISTING,
+}
+
+export type DialogToken = {
   nftAddress: string;
   tokenId: string;
 };
 
-export const defaultActiveToken: ActiveToken = {
+export const defaultDialogToken: DialogToken = {
   nftAddress: "",
   tokenId: "",
 };
-
-export enum DialogActionTypes {
-  LIST,
-  CANCEL,
-}
