@@ -196,6 +196,7 @@ const Election = () => {
                   name="state"
                 />
               </label>
+              <br />
               <label>
                 {Leader[Leader.CANDIDATE1]} Votes:
                 <input
@@ -206,6 +207,7 @@ const Election = () => {
                   name="candidate2_votes"
                 />
               </label>
+              <br />
               <label>
                 {Leader[Leader.CANDIDATE2]} Votes:
                 <input
@@ -216,6 +218,7 @@ const Election = () => {
                   name="candidate1_votes"
                 />
               </label>
+              <br />
               <label>
                 Seats:
                 <input

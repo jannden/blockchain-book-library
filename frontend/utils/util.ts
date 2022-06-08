@@ -36,34 +36,13 @@ export const parseBalance = (value: BigNumberish, decimals = 18, decimalsToDispl
 export interface Networks {
   [key: number]: string;
 }
+
 export const walletConnectSupportedNetworks: Networks = {
-  // Add your network rpc URL here
   1: "https://ethereumnode.defiterm.io",
   3: "https://ethereumnode.defiterm-dev.net",
 };
 
-// Network chain ids
 export const supportedMetamaskNetworks = [1, 3, 4, 5, 42];
-
-export const groupBy = (items, key) => {
-  const groupedObject = items.reduce(
-    (result, item) => ({
-      ...result,
-      [item[key]]: [...(result[item[key]] || []), item],
-    }),
-    {}
-  );
-  return groupedObject;
-};
-
-export const removeDuplicates = (arrayOfObjects, uniqueKey1, uniqueKey2) => {
-  return arrayOfObjects.filter(
-    (thing, index, self) =>
-      self.findIndex(
-        (t) => t[uniqueKey1] === thing[uniqueKey1] && t[uniqueKey2] === thing[uniqueKey2]
-      ) === index
-  );
-};
 
 export const ipfs: IPFSHTTPClient = createIpsf({
   url: "https://ipfs.infura.io:5001",
@@ -89,40 +68,41 @@ export const getCollectionContract = async (
   return collectionContract;
 };
 
+export const doAccountsMatch = (account1: string, account2: string) => {
+  return account1.toLowerCase() === account2.toLowerCase();
+};
+
 // The Graph
 export const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v1.2";
-export const graphQuery = `
-      query {
-      itemListeds {
+export const graphQueryNew = `
+    query getUserCollections($address: Bytes) {
+      itemListeds(orderBy: timestamp, orderDirection: desc) {
         id
         seller
         nftAddress
         tokenId
         price
         timestamp
-        owner
         tokenUri
       }
-      itemCanceleds {
+      itemCanceleds(orderBy: timestamp, orderDirection: desc) {
         id
         seller
         nftAddress
         tokenId
         timestamp
-        owner
         tokenUri
       }
-      itemBoughts {
+      itemBoughts(orderBy: timestamp, orderDirection: desc) {
         id
         buyer
         nftAddress
         tokenId
         price
         timestamp
-        owner
         tokenUri
       }
-      collectionAddeds {
+      collectionAddeds(where: { deployer: $address }, orderBy: timestamp, orderDirection: desc) {
         id
         deployer
         nftAddress

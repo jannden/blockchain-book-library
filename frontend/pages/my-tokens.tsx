@@ -1,22 +1,18 @@
-import type { JsonRpcSigner, Web3Provider } from "@ethersproject/providers";
+import type { Web3Provider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
 import { ethers } from "ethers";
-import { useEffect, useState, useRef } from "react";
-import { getCollectionContract, ipfs, ipfsPath } from "../utils/util";
-import { createClient } from "urql";
+import { useState, useRef, useEffect } from "react";
+import { doAccountsMatch, getCollectionContract, ipfs, ipfsPath } from "../utils/util";
 import { deployedNftMarketplace } from "../utils/deployedContracts";
 import useNftMarketplaceContract from "../hooks/useNftMarketplaceContract";
-import { create as createIpsf, IPFSHTTPClient } from "ipfs-http-client";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
-import Divider from "@mui/material/Divider";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import TextField from "@mui/material/TextField";
-import MenuItem from "@mui/material/MenuItem";
 import Link from "@mui/material/Link";
 import Alert from "@mui/material/Alert";
 import Dialog from "@mui/material/Dialog";
@@ -29,38 +25,29 @@ import {
   InfoType,
   Inputs,
   defaultInputs,
-  MarketplaceData,
-  defaultMarketplaceData,
   Dialogs,
   defaultDialogs,
   DialogActionTypes,
   DialogToken,
   defaultDialogToken,
+  TokensListData,
 } from "../utils/types";
+import useGraph from "../hooks/useGraph";
+import { grey } from "@mui/material/colors";
+import Typography from "@mui/material/Typography";
+import AccountError from "../components/AccountError";
 
-const Marketplace = () => {
-  const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
+const MyTokens = () => {
   const { library, account, chainId } = useWeb3React<Web3Provider>();
+  const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
+  const graphData = useGraph(account, false);
 
   const [dialogs, setDialogs] = useState<Dialogs>(defaultDialogs);
   const [dialogToken, setDialogToken] = useState<DialogToken>(defaultDialogToken);
-
-  const [marketplaceData, setMarketplaceData] = useState<MarketplaceData>(defaultMarketplaceData);
   const [transactionInProgress, setTransactionInProgress] = useState<boolean>(false);
   const [info, setInfo] = useState<InfoType>({});
   const [inputs, setInputs] = useState<Inputs>(defaultInputs);
   const tokenImage = useRef(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER}/api/nftsOfAddress/${account}`);
-      const nfts = await res.json();
-      setMarketplaceData(nfts);
-    };
-    if (account) {
-      fetchData();
-    }
-  }, [account]);
 
   const inputHandler = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
@@ -118,6 +105,7 @@ const Marketplace = () => {
     // Reset dialogs
     setDialogToken(defaultDialogToken);
     setDialogs(defaultDialogs);
+    setInputs(defaultInputs);
   };
 
   /////////////////////
@@ -133,6 +121,7 @@ const Marketplace = () => {
     setInfo({});
     setTransactionInProgress(true);
     setDialogs(defaultDialogs);
+    setInputs(defaultInputs);
 
     // Preparing the contract
     setInfo({
@@ -153,6 +142,7 @@ const Marketplace = () => {
         link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
+      await tx.wait();
       setInfo((prevInfo) => ({ ...prevInfo, info: "Transaction completed." }));
     } catch (error) {
       setInfo({ error: error.error?.message || error.errorArgs?.[0] || error.message });
@@ -176,6 +166,7 @@ const Marketplace = () => {
     setInfo({});
     setTransactionInProgress(true);
     setDialogs(defaultDialogs);
+    setInputs(defaultInputs);
 
     try {
       // Upload the image
@@ -221,6 +212,7 @@ const Marketplace = () => {
     setInfo({});
     setTransactionInProgress(true);
     setDialogs(defaultDialogs);
+    setInputs(defaultInputs);
 
     try {
       // Preparing the contract
@@ -273,6 +265,7 @@ const Marketplace = () => {
     setInfo({});
     setTransactionInProgress(true);
     setDialogs(defaultDialogs);
+    setInputs(defaultInputs);
 
     try {
       const tx = await nftMarketplaceContract.cancelListing(
@@ -295,7 +288,7 @@ const Marketplace = () => {
   };
 
   if (!!account === false) {
-    return null;
+    return <AccountError />;
   }
 
   return (
@@ -312,6 +305,67 @@ const Marketplace = () => {
         </Alert>
       )}
       <Grid container spacing={3}>
+        <Grid item lg={12}>
+          {graphData.collectionsList?.length > 0 &&
+            graphData.collectionsList.map(
+              ({ nftAddress, isCollectionOwner, tokens, collectionName }) =>
+                (isCollectionOwner || tokens.some((token) => token.owner === account)) && (
+                  <Paper
+                    key={shortenHex(nftAddress)}
+                    sx={{ padding: 3, mb: 3, backgroundColor: grey[50] }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <h3>Collection: {collectionName}</h3>
+                      {isCollectionOwner && (
+                        <Button
+                          variant="outlined"
+                          onClick={handleDialogOpening.bind(
+                            this,
+                            DialogActionTypes.MINT_TOKEN,
+                            nftAddress
+                          )}
+                          disabled={transactionInProgress}
+                        >
+                          Mint new token
+                        </Button>
+                      )}
+                    </Box>
+                    {tokens.length === 0 ||
+                    !tokens.some(
+                      (token: TokensListData) =>
+                        token.owner && doAccountsMatch(token.owner, account)
+                    ) ? (
+                      <Typography variant="body1" component="div">
+                        You do not own any tokens from this collection, but the collection is yours,
+                        so you can mint a new token.
+                      </Typography>
+                    ) : (
+                      <Grid container spacing={3}>
+                        {tokens.map(
+                          (token: TokensListData, index2: number) =>
+                            token.owner &&
+                            doAccountsMatch(token.owner, account) && (
+                              <Grid item lg={3} key={index2}>
+                                <MediaCard
+                                  tokenData={token}
+                                  transactionInProgress={transactionInProgress}
+                                  handleDialogOpening={handleDialogOpening}
+                                ></MediaCard>
+                              </Grid>
+                            )
+                        )}
+                      </Grid>
+                    )}
+                  </Paper>
+                )
+            )}
+        </Grid>
         <Grid item lg={3}>
           <Button
             variant="contained"
@@ -320,48 +374,6 @@ const Marketplace = () => {
           >
             Deploy a new collection
           </Button>
-        </Grid>
-        <Grid item lg={12}>
-          {marketplaceData.userAllCollections &&
-            marketplaceData.userAllCollections.map(({ nftAddress }) => (
-              <Box key={shortenHex(nftAddress)}>
-                <h3>Collection: {nftAddress}</h3>
-                <Grid container spacing={3}>
-                  {marketplaceData.userItems[nftAddress] &&
-                    marketplaceData.userItems[nftAddress].map((token, index2) => (
-                      <Grid item lg={3} key={index2}>
-                        <MediaCard
-                          tokenData={token}
-                          transactionInProgress={transactionInProgress}
-                          handleDialogOpening={handleDialogOpening}
-                        ></MediaCard>
-                      </Grid>
-                    ))}
-                  <Grid item lg={3}>
-                    <Box
-                      sx={{
-                        height: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <Button
-                        variant="outlined"
-                        onClick={handleDialogOpening.bind(
-                          this,
-                          DialogActionTypes.MINT_TOKEN,
-                          nftAddress
-                        )}
-                        disabled={transactionInProgress}
-                      >
-                        Mint new token
-                      </Button>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Box>
-            ))}
         </Grid>
       </Grid>
       <Dialog open={dialogs.deployCollection} onClose={closeDialogs}>
@@ -491,4 +503,4 @@ const Marketplace = () => {
   );
 };
 
-export default Marketplace;
+export default MyTokens;

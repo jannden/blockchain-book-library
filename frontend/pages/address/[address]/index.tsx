@@ -1,41 +1,30 @@
-import Grid from "@mui/material/Grid";
-import Box from "@mui/material/Box";
-import MediaCard from "../../../components/MediaCard";
-import { shortenHex } from "../../../utils/util";
+import type { Web3Provider } from "@ethersproject/providers";
+import { useWeb3React } from "@web3-react/core";
+import { useRouter } from "next/router";
+import TokensOfAddress from "../../../components/TokensOfAddress";
+import Buyable from "../../../components/Buyable";
+import AccountError from "../../../components/AccountError";
+import { doAccountsMatch } from "../../../utils/util";
 
-const AddressTokens = ({ owner, marketplaceData }) => {
+const AddressPage = () => {
+  const router = useRouter();
+  const { address } = router.query;
+
+  const { account } = useWeb3React<Web3Provider>();
+
+  if (account && typeof address === "string" && doAccountsMatch(account, address)) {
+    router.push("/my-tokens");
+  }
+
+  if (!!account === false) {
+    return <AccountError />;
+  }
+
   return (
-    <>
-      <h3>Tokens owned by {shortenHex(owner)}</h3>
-
-      {marketplaceData.userItems &&
-        Object.keys(marketplaceData.userItems).map((key, index) => (
-          <Box key={index}>
-            <h3>Collection: {key}</h3>
-            <Grid container spacing={3}>
-              {marketplaceData.userItems[key].map((token, index2) => (
-                <Grid item lg={3} key={index2}>
-                  <MediaCard tokenData={token}></MediaCard>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        ))}
-    </>
+    <Buyable graphAccount={address} listedOnly={false}>
+      <TokensOfAddress address={address} />
+    </Buyable>
   );
 };
 
-export default AddressTokens;
-
-export const getServerSideProps = async (context) => {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SERVER}/api/nftsOfAddress/${context.params.address}`
-  );
-  const marketplaceData = await res.json();
-  return {
-    props: {
-      owner: context.params.address,
-      marketplaceData,
-    },
-  };
-};
+export default AddressPage;

@@ -25,27 +25,25 @@ export const defaultInputs: Inputs = {
   tokenImage: "",
 };
 
-export type EventData = {
+export type TokensListData = {
   nftAddress: string;
-  tokenId: number;
+  tokenId: string;
+  tokenUri: string;
+  price: string;
+  type: string;
+  owner: string;
 };
 
-export type MarketplaceData = {
-  allListedItems: Array<EventData>;
-  listedItemsByOthers: Array<EventData>;
-  userItems: Array<EventData>;
-  userMintableCollections: Array<EventData>;
-  userAllCollections: Array<EventData>;
-  setRefreshGraph: Array<EventData>;
+export type MediaCardProps = {
+  tokenData: TokensListData;
+  handlePurchase?: (nftAddress: string, tokenId: string, price: string) => Promise<void>;
+  handleDialogOpening?: (action: DialogActionTypes, nftAddress: string, tokenId: string) => void;
+  transactionInProgress?: boolean;
 };
 
-export const defaultMarketplaceData: MarketplaceData = {
-  allListedItems: [],
-  listedItemsByOthers: [],
-  userItems: [],
-  userMintableCollections: [],
-  userAllCollections: [],
-  setRefreshGraph: [],
+export type TokenMetadata = {
+  tokenName: string;
+  tokenImage: string;
 };
 
 export type Dialogs = {

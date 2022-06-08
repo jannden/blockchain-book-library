@@ -13,15 +13,15 @@ export const mainListItems = (
     <ListSubheader component="div" inset>
       NFT Marketplace
     </ListSubheader>
-    <Link href="/listedTokens">
+    <Link href="/" passHref>
       <ListItemButton>
         <ListItemIcon>
           <ShoppingCartIcon />
         </ListItemIcon>
-        <ListItemText primary="For sale" />
+        <ListItemText primary="Marketplace" />
       </ListItemButton>
     </Link>
-    <Link href="/myTokens">
+    <Link href="/my-tokens" passHref>
       <ListItemButton>
         <ListItemIcon>
           <ShoppingCartIcon />
@@ -34,7 +34,10 @@ export const mainListItems = (
 
 export const secondaryListItems = (
   <React.Fragment>
-    <Link href="/book-library">
+    <ListSubheader component="div" inset>
+      Other Projects
+    </ListSubheader>
+    <Link href="/book-library" passHref>
       <ListItemButton>
         <ListItemIcon>
           <MenuBook />
@@ -42,7 +45,7 @@ export const secondaryListItems = (
         <ListItemText primary="Book Library" />
       </ListItemButton>
     </Link>
-    <Link href="/election">
+    <Link href="/election" passHref>
       <ListItemButton>
         <ListItemIcon>
           <HowToVote />

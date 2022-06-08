@@ -1,26 +1,21 @@
-import Link from "next/link";
+import type { Web3Provider } from "@ethersproject/providers";
+import { useWeb3React } from "@web3-react/core";
+import AccountError from "../components/AccountError";
+import Buyable from "../components/Buyable";
+import ListedItems from "../components/ListedItems";
 
-function Home() {
+const Marketplace = () => {
+  const { account } = useWeb3React<Web3Provider>();
+
+  if (!!account === false) {
+    return <AccountError />;
+  }
+
   return (
-    <>
-      <h1>Projects</h1>
-      <p>
-        <Link href="/election">
-          <a>Election</a>
-        </Link>
-      </p>
-      <p>
-        <Link href="/book-library">
-          <a>Book Library</a>
-        </Link>
-      </p>
-      <p>
-        <Link href="/listedTokens">
-          <a>Marketplace</a>
-        </Link>
-      </p>
-    </>
+    <Buyable graphAccount={account} listedOnly={true}>
+      <ListedItems />
+    </Buyable>
   );
-}
+};
 
-export default Home;
+export default Marketplace;

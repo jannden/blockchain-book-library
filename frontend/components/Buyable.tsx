@@ -1,37 +1,23 @@
 import type { Web3Provider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
-import Grid from "@mui/material/Grid";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
-import { useEffect, useState } from "react";
+import { useState, cloneElement, useEffect } from "react";
 import { deployedNftMarketplace } from "../utils/deployedContracts";
 import useNftMarketplaceContract from "../hooks/useNftMarketplaceContract";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
-import Divider from "@mui/material/Divider";
-import Box from "@mui/material/Box";
 import Link from "@mui/material/Link";
 import Alert from "@mui/material/Alert";
-import MediaCard from "../components/MediaCard";
-import { InfoType, MarketplaceData, defaultMarketplaceData } from "../utils/types";
+import { InfoType } from "../utils/types";
+import useGraph from "../hooks/useGraph";
 
-const Marketplace = () => {
-  const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
+const Buyable = ({ children, listedOnly, graphAccount }) => {
   const { account, chainId } = useWeb3React<Web3Provider>();
+  const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
+  const graphData = useGraph(graphAccount, listedOnly);
 
-  const [marketplaceData, setMarketplaceData] = useState<MarketplaceData>(defaultMarketplaceData);
   const [transactionInProgress, setTransactionInProgress] = useState<boolean>(false);
   const [info, setInfo] = useState<InfoType>({});
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_SERVER}/api/nftsOfAddress/${account}`);
-      const nfts = await res.json();
-      setMarketplaceData(nfts);
-    };
-    if (account) {
-      fetchData();
-    }
-  }, [account]);
 
   /////////////////////
   //     Buy Item    //
@@ -75,23 +61,11 @@ const Marketplace = () => {
           {info.error}
         </Alert>
       )}
-      {marketplaceData.listedItemsByOthers &&
-        Object.keys(marketplaceData.listedItemsByOthers).map((key, index) => (
-          <Box key={index}>
-            <h3>Collection: {key}</h3>
-            <Grid container spacing={3}>
-              {marketplaceData.listedItemsByOthers[key].map((token, index2) => (
-                <Grid item lg={3} key={index2}>
-                  <MediaCard
-                    tokenData={token}
-                    handlePurchase={handlePurchase}
-                    transactionInProgress={transactionInProgress}
-                  ></MediaCard>
-                </Grid>
-              ))}
-            </Grid>
-          </Box>
-        ))}
+      {cloneElement(children, {
+        transactionInProgress,
+        handlePurchase,
+        graphData,
+      })}
       <Backdrop
         sx={{ color: "#fff", flexDirection: "column", zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={transactionInProgress}
@@ -100,7 +74,7 @@ const Marketplace = () => {
         {info.info && (
           <Alert severity="info">
             {info.info}{" "}
-            {info.link && info.hash && <Link href={info.link}>{shortenHex(info.hash, 4)}</Link>}
+            {info.link && info.hash && <Link href={info.link}>{shortenHex(info.hash)}</Link>}
           </Alert>
         )}
       </Backdrop>
@@ -108,4 +82,4 @@ const Marketplace = () => {
   );
 };
 
-export default Marketplace;
+export default Buyable;

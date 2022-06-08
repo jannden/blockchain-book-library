@@ -4,7 +4,7 @@ import {
   graphUrl,
   graphQuery,
   getCollectionContract,
-  removeDuplicates,
+  removeDuplicateTokens,
   groupBy,
 } from "../../../utils/util";
 
@@ -20,16 +20,14 @@ export default async function handler({ query: { address } }, res) {
 
   // Get items currently listed in the marketplace for purchase
   const mergedFilter = [...itemCanceleds, ...itemBoughts];
-  const currentlyListedItems = removeDuplicates(
+  const currentlyListedItems = removeDuplicateTokens(
     itemListeds.filter((el: any) => {
       return !mergedFilter.some((f) => {
         return (
           f.nftAddress === el.nftAddress && f.tokenId === el.tokenId && f.timestamp > el.timestamp
         );
       });
-    }),
-    "nftAddress",
-    "tokenId"
+    })
   );
 
   /*
@@ -43,11 +41,7 @@ export default async function handler({ query: { address } }, res) {
   const mergedMarketplace = [...itemListeds, ...itemCanceleds, ...itemBoughts].sort(
     ({ timestamp: a }, { timestamp: b }) => b - a
   );
-  const mergedMarketplaceWithoutDuplicates = removeDuplicates(
-    mergedMarketplace,
-    "nftAddress",
-    "tokenId"
-  );
+  const mergedMarketplaceWithoutDuplicates = removeDuplicateTokens(mergedMarketplace);
   const ownedByUserEverListed = mergedMarketplaceWithoutDuplicates
     .filter((token) => token.owner == account.toLowerCase())
     .map((token) => ({
