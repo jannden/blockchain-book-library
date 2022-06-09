@@ -153,7 +153,9 @@ const Election = () => {
         {info.info && <div className="info">{info.info}</div>}
         {info.link && info.hash && (
           <div>
-            <a href={info.link}>{info.hash}</a>
+            <a href={info.link} rel="noopener noreferrer" target="_blank">
+              {info.hash}
+            </a>
           </div>
         )}
         {info.error && <div className="error">{info.error}</div>}

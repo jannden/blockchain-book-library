@@ -296,7 +296,11 @@ const MyTokens = () => {
       {info.info && !transactionInProgress && (
         <Alert severity="info" sx={{ mb: 3 }}>
           {info.info}{" "}
-          {info.link && info.hash && <Link href={info.link}>{shortenHex(info.hash, 4)}</Link>}
+          {info.link && info.hash && (
+            <Link href={info.link} rel="noopener noreferrer" target="_blank">
+              {shortenHex(info.hash, 4)}
+            </Link>
+          )}
         </Alert>
       )}
       {info.error && (
@@ -495,7 +499,11 @@ const MyTokens = () => {
         {info.info && (
           <Alert severity="info">
             {info.info}{" "}
-            {info.link && info.hash && <Link href={info.link}>{shortenHex(info.hash)}</Link>}
+            {info.link && info.hash && (
+              <Link href={info.link} rel="noopener noreferrer" target="_blank">
+                {shortenHex(info.hash)}
+              </Link>
+            )}
           </Alert>
         )}
       </Backdrop>
