@@ -308,15 +308,22 @@ const MyTokens = () => {
           {info.error}
         </Alert>
       )}
-
-      {!graphData.collectionsList?.length && !graphData.error ? (
-        <CircularProgress color="inherit" sx={{ mb: 3 }} />
-      ) : graphData.error ? (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {graphData.error.message}
-        </Alert>
-      ) : (
-        <Grid container spacing={3}>
+      <Grid container spacing={3}>
+        {graphData.error ? (
+          <Grid item lg={12}>
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {graphData.error.message}
+            </Alert>
+          </Grid>
+        ) : !graphData.dataLength ? (
+          <Grid item lg={12}>
+            <Alert severity="info" sx={{ mb: 3 }}>
+              No data yet.
+            </Alert>
+          </Grid>
+        ) : !graphData.collectionsList?.length && !graphData.error ? (
+          <CircularProgress color="inherit" sx={{ mb: 3 }} />
+        ) : (
           <Grid item lg={12}>
             {graphData.collectionsList?.length > 0 &&
               graphData.collectionsList.map(
@@ -378,17 +385,17 @@ const MyTokens = () => {
                   )
               )}
           </Grid>
-          <Grid item lg={3}>
-            <Button
-              variant="contained"
-              onClick={handleDialogOpening.bind(this, DialogActionTypes.DEPLOY_COLLECTION)}
-              disabled={transactionInProgress}
-            >
-              Deploy a new collection
-            </Button>
-          </Grid>
+        )}
+        <Grid item lg={3}>
+          <Button
+            variant="contained"
+            onClick={handleDialogOpening.bind(this, DialogActionTypes.DEPLOY_COLLECTION)}
+            disabled={transactionInProgress}
+          >
+            Deploy a new collection
+          </Button>
         </Grid>
-      )}
+      </Grid>
       <Dialog open={dialogs.deployCollection} onClose={closeDialogs}>
         <DialogTitle>Deploy collection</DialogTitle>
         <DialogContent>

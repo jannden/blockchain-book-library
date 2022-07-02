@@ -65,12 +65,16 @@ const Buyable = ({ children, listedOnly, graphAccount }) => {
           {info.error}
         </Alert>
       )}
-      {!graphData.collectionsList?.length && !graphData.error ? (
-        <CircularProgress color="inherit" sx={{ mb: 3 }} />
-      ) : graphData.error ? (
+      {graphData.error ? (
         <Alert severity="error" sx={{ mb: 3 }}>
           {graphData.error.message}
         </Alert>
+      ) : !graphData.dataLength ? (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          No data yet.
+        </Alert>
+      ) : !graphData.collectionsList?.length && !graphData.error ? (
+        <CircularProgress color="inherit" sx={{ mb: 3 }} />
       ) : (
         cloneElement(children, {
           transactionInProgress,

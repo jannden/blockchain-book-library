@@ -21,6 +21,7 @@ export default function useGraph(address, listedOnly) {
     ),
   });
   const [collectionsList, setCollectionsList] = useState([]);
+  const [dataLength, setDataLength] = useState(0);
 
   useEffect(() => {
     setCollectionsList([]);
@@ -149,6 +150,12 @@ export default function useGraph(address, listedOnly) {
     }
 
     if (!result?.error && result.data && account && library?._isProvider) {
+      // Get data length
+      const { itemListeds, itemBoughts, itemCanceleds, collectionAddeds } = result.data;
+      setDataLength(
+        itemListeds.length + itemBoughts.length + itemCanceleds.length + collectionAddeds.length
+      );
+      // Process data
       processData();
     }
 
@@ -158,6 +165,7 @@ export default function useGraph(address, listedOnly) {
 
   return {
     collectionsList,
+    dataLength,
     fetching: result.fetching,
     calculating: calculating,
     error: result.error,
