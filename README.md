@@ -30,3 +30,4 @@ If you want to change anything in the contract `../backend/contracts/NftMarketpl
 1. Update the `NftCollection.sol` contract in `./backend/contracts`.
 2. Run `$ npx hardhat compile`.
 3. Copy the artifact from `./backend/artifacts/contracts/NftCollection.sol/NftCollection.json` to the frontend here: `./frontend/contracts/NftCollection.json`.
+4. Copy just the ABI from the artifact from `./backend/artifacts/contracts/NftCollection.sol/NftCollection.json` to the Graph here: `./subgraph/abis/NftCollection.json`.

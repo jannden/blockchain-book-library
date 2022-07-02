@@ -73,7 +73,7 @@ export const doAccountsMatch = (account1: string, account2: string) => {
 };
 
 // The Graph
-export const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v1.2";
+export const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v1.3";
 export const graphQueryNew = `
     query getUserCollections($address: Bytes) {
       itemListeds(orderBy: timestamp, orderDirection: desc) {
