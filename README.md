@@ -24,3 +24,9 @@ If you want to change anything in the contract `../backend/contracts/NftMarketpl
 11. `$ graph build`
 12. `$ graph deploy --studio nftmarketplace`
 13. Update the `graphUrl` in `../frontend/utils/util.ts`
+
+## Updating the NFT Collection contract
+
+1. Update the `NftCollection.sol` contract in `./backend/contracts`.
+2. Run `$ npx hardhat compile`.
+3. Copy the artifact from `./backend/artifacts/contracts/NftCollection.sol/NftCollection.json` to the frontend here: `./frontend/contracts/NftCollection.json`.
