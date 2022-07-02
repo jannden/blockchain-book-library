@@ -4,6 +4,7 @@ pragma solidity ^0.8.7;
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
@@ -16,7 +17,13 @@ interface NftMarketplaceInterface {
   function cancelListing(address _nftAddress, uint256 _tokenId) external;
 }
 
-contract NftCollection is ERC721, ERC721Enumerable, ERC721URIStorage, Ownable {
+contract NftCollection is
+  ERC721,
+  ERC721Burnable,
+  ERC721Enumerable,
+  ERC721URIStorage,
+  Ownable
+{
   using Counters for Counters.Counter;
 
   Counters.Counter private tokenIdCounter;

@@ -1,6 +1,9 @@
 {
-  "name": "next-web3-boilerplate",
+  "name": "nft-marketplace-frontend",
+  "author": "Jan Cibulka",
   "version": "1.0.0",
+  "description": "NFT Marketplace using The Graph built as a part of the Lime Academy challenge.",
+  "url": "https://github.com/jannden/nft-marketplace",
   "private": true,
   "scripts": {
     "dev": "next dev -p 4001",

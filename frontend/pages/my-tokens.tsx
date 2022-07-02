@@ -308,78 +308,87 @@ const MyTokens = () => {
           {info.error}
         </Alert>
       )}
-      <Grid container spacing={3}>
-        <Grid item lg={12}>
-          {graphData.collectionsList?.length > 0 &&
-            graphData.collectionsList.map(
-              ({ nftAddress, isCollectionOwner, tokens, collectionName }) =>
-                (isCollectionOwner || tokens.some((token) => token.owner === account)) && (
-                  <Paper
-                    key={shortenHex(nftAddress)}
-                    sx={{ padding: 3, mb: 3, backgroundColor: grey[50] }}
-                  >
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
+
+      {!graphData.collectionsList?.length && !graphData.error ? (
+        <CircularProgress color="inherit" sx={{ mb: 3 }} />
+      ) : graphData.error ? (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {graphData.error.message}
+        </Alert>
+      ) : (
+        <Grid container spacing={3}>
+          <Grid item lg={12}>
+            {graphData.collectionsList?.length > 0 &&
+              graphData.collectionsList.map(
+                ({ nftAddress, isCollectionOwner, tokens, collectionName }) =>
+                  (isCollectionOwner || tokens.some((token) => token.owner === account)) && (
+                    <Paper
+                      key={shortenHex(nftAddress)}
+                      sx={{ padding: 3, mb: 3, backgroundColor: grey[50] }}
                     >
-                      <h3>Collection: {collectionName}</h3>
-                      {isCollectionOwner && (
-                        <Button
-                          variant="outlined"
-                          onClick={handleDialogOpening.bind(
-                            this,
-                            DialogActionTypes.MINT_TOKEN,
-                            nftAddress
-                          )}
-                          disabled={transactionInProgress}
-                        >
-                          Mint new token
-                        </Button>
-                      )}
-                    </Box>
-                    {tokens.length === 0 ||
-                    !tokens.some(
-                      (token: TokensListData) =>
-                        token.owner && doAccountsMatch(token.owner, account)
-                    ) ? (
-                      <Typography variant="body1" component="div">
-                        You do not own any tokens from this collection, but the collection is yours,
-                        so you can mint a new token.
-                      </Typography>
-                    ) : (
-                      <Grid container spacing={3}>
-                        {tokens.map(
-                          (token: TokensListData, index2: number) =>
-                            token.owner &&
-                            doAccountsMatch(token.owner, account) && (
-                              <Grid item lg={3} key={index2}>
-                                <MediaCard
-                                  tokenData={token}
-                                  transactionInProgress={transactionInProgress}
-                                  handleDialogOpening={handleDialogOpening}
-                                ></MediaCard>
-                              </Grid>
-                            )
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <h3>Collection: {collectionName}</h3>
+                        {isCollectionOwner && (
+                          <Button
+                            variant="outlined"
+                            onClick={handleDialogOpening.bind(
+                              this,
+                              DialogActionTypes.MINT_TOKEN,
+                              nftAddress
+                            )}
+                            disabled={transactionInProgress}
+                          >
+                            Mint new token
+                          </Button>
                         )}
-                      </Grid>
-                    )}
-                  </Paper>
-                )
-            )}
+                      </Box>
+                      {tokens.length === 0 ||
+                      !tokens.some(
+                        (token: TokensListData) =>
+                          token.owner && doAccountsMatch(token.owner, account)
+                      ) ? (
+                        <Typography variant="body1" component="div">
+                          You do not own any tokens from this collection, but the collection is
+                          yours, so you can mint a new token.
+                        </Typography>
+                      ) : (
+                        <Grid container spacing={3}>
+                          {tokens.map(
+                            (token: TokensListData, index2: number) =>
+                              token.owner &&
+                              doAccountsMatch(token.owner, account) && (
+                                <Grid item lg={3} key={index2}>
+                                  <MediaCard
+                                    tokenData={token}
+                                    transactionInProgress={transactionInProgress}
+                                    handleDialogOpening={handleDialogOpening}
+                                  ></MediaCard>
+                                </Grid>
+                              )
+                          )}
+                        </Grid>
+                      )}
+                    </Paper>
+                  )
+              )}
+          </Grid>
+          <Grid item lg={3}>
+            <Button
+              variant="contained"
+              onClick={handleDialogOpening.bind(this, DialogActionTypes.DEPLOY_COLLECTION)}
+              disabled={transactionInProgress}
+            >
+              Deploy a new collection
+            </Button>
+          </Grid>
         </Grid>
-        <Grid item lg={3}>
-          <Button
-            variant="contained"
-            onClick={handleDialogOpening.bind(this, DialogActionTypes.DEPLOY_COLLECTION)}
-            disabled={transactionInProgress}
-          >
-            Deploy a new collection
-          </Button>
-        </Grid>
-      </Grid>
+      )}
       <Dialog open={dialogs.deployCollection} onClose={closeDialogs}>
         <DialogTitle>Deploy collection</DialogTitle>
         <DialogContent>

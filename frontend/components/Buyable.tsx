@@ -2,7 +2,7 @@ import type { Web3Provider } from "@ethersproject/providers";
 import { useWeb3React } from "@web3-react/core";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
-import { useState, cloneElement, useEffect } from "react";
+import { useState, cloneElement } from "react";
 import { deployedNftMarketplace } from "../utils/deployedContracts";
 import useNftMarketplaceContract from "../hooks/useNftMarketplaceContract";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
@@ -12,7 +12,7 @@ import { InfoType } from "../utils/types";
 import useGraph from "../hooks/useGraph";
 
 const Buyable = ({ children, listedOnly, graphAccount }) => {
-  const { account, chainId } = useWeb3React<Web3Provider>();
+  const { chainId } = useWeb3React<Web3Provider>();
   const nftMarketplaceContract = useNftMarketplaceContract(deployedNftMarketplace.address);
   const graphData = useGraph(graphAccount, listedOnly);
 
@@ -65,11 +65,19 @@ const Buyable = ({ children, listedOnly, graphAccount }) => {
           {info.error}
         </Alert>
       )}
-      {cloneElement(children, {
-        transactionInProgress,
-        handlePurchase,
-        graphData,
-      })}
+      {!graphData.collectionsList?.length && !graphData.error ? (
+        <CircularProgress color="inherit" sx={{ mb: 3 }} />
+      ) : graphData.error ? (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {graphData.error.message}
+        </Alert>
+      ) : (
+        cloneElement(children, {
+          transactionInProgress,
+          handlePurchase,
+          graphData,
+        })
+      )}
       <Backdrop
         sx={{ color: "#fff", flexDirection: "column", zIndex: (theme) => theme.zIndex.drawer + 1 }}
         open={transactionInProgress}

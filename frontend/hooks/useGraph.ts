@@ -9,12 +9,13 @@ import { doAccountsMatch } from "../utils/util";
 // Custom hook to query TheGraph
 export default function useGraph(address, listedOnly) {
   const { library, account } = useWeb3React<Web3Provider>();
+  const [calculating, setCalculating] = useState(false);
   const [result, reexecuteQuery] = useQuery({
     query: graphQueryNew,
     variables: { address },
     context: useMemo(
       () => ({
-        requestPolicy: "network-only",
+        requestPolicy: "cache-and-network",
       }),
       []
     ),
@@ -37,7 +38,11 @@ export default function useGraph(address, listedOnly) {
   }, [result.fetching, reexecuteQuery]);
 
   useEffect(() => {
+    if (result.fetching || result.error) return;
+
     async function processData() {
+      setCalculating(true);
+
       // Prepare signer
       const signer = library.getSigner(account);
 
@@ -139,6 +144,8 @@ export default function useGraph(address, listedOnly) {
       }
       const grouped = await groupBy(relevantItems, "nftAddress", signer, address);
       setCollectionsList(grouped);
+
+      setCalculating(false);
     }
 
     if (!result?.error && result.data && account && library?._isProvider) {
@@ -151,11 +158,9 @@ export default function useGraph(address, listedOnly) {
 
   return {
     collectionsList,
-    error: result?.error
-      ? result?.error.message
-      : collectionsList.length === 0
-      ? "The page is empty."
-      : undefined,
+    fetching: result.fetching,
+    calculating: calculating,
+    error: result.error,
   };
 }
 

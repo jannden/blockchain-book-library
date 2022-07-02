@@ -1,9 +1,10 @@
 {
-  "name": "nft-marketplace",
+  "name": "nft-marketplace-backend",
   "author": "Jan Cibulka",
   "version": "1.0.0",
   "description": "NFT Marketplace using The Graph built as a part of the Lime Academy challenge.",
   "url": "https://github.com/jannden/nft-marketplace",
+  "private": true,
   "engines": {
     "node": ">=16.0.0"
   },
@@ -14,7 +15,6 @@
     "interact": "npx hardhat run --network localhost scripts/NftMarketplaceV2.interact.ts",
     "interact:rinkeby": "npx hardhat run --network rinkeby scripts/NftMarketplaceV2.interact.ts"
   },
-  "license": "MIT",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",
     "@nomiclabs/hardhat-etherscan": "^3.0.3",
