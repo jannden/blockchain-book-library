@@ -6,10 +6,13 @@ import Container from "@mui/material/Container";
 import Toolbar from "@mui/material/Toolbar";
 import AppBar from "../components/AppBar";
 import Drawer from "../components/Drawer";
+import { useRouter } from "next/router";
 
 const mdTheme = createTheme();
 
 function Layout({ children }) {
+  const { asPath } = useRouter();
+
   const [open, setOpen] = React.useState(true);
   const toggleDrawer = () => {
     setOpen(!open);
@@ -18,7 +21,11 @@ function Layout({ children }) {
     <ThemeProvider theme={mdTheme}>
       <Box sx={{ display: "flex" }}>
         <CssBaseline />
-        <AppBar open={open} toggleDrawer={toggleDrawer} />
+        <AppBar
+          open={open}
+          toggleDrawer={toggleDrawer}
+          title={asPath === "/my-tokens" ? "My Tokens" : "NFT Marketplace"}
+        />
         <Drawer open={open} toggleDrawer={toggleDrawer} />
         <Box
           component="main"

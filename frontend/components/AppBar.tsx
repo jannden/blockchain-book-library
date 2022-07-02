@@ -37,7 +37,7 @@ const StyledAppBar = styled(MuiAppBar, {
 
 const mdTheme = createTheme();
 
-function AppBar({ open, toggleDrawer }) {
+function AppBar({ open, toggleDrawer, title }) {
   const triedToEagerConnect = useEagerConnect();
   const { asPath } = useRouter();
   return (
@@ -60,7 +60,7 @@ function AppBar({ open, toggleDrawer }) {
           <MenuIcon />
         </IconButton>
         <Typography component="h1" variant="h6" color="inherit" noWrap sx={{ flexGrow: 1 }}>
-          {asPath.toUpperCase()}
+          {title}
         </Typography>
         <Account triedToEagerConnect={triedToEagerConnect} />
       </Toolbar>

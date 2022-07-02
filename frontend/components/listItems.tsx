@@ -7,12 +7,10 @@ import ListSubheader from "@mui/material/ListSubheader";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import HowToVote from "@mui/icons-material/HowToVote";
 import MenuBook from "@mui/icons-material/MenuBook";
+import { AccountBox } from "@mui/icons-material";
 
 export const mainListItems = (
   <React.Fragment>
-    <ListSubheader component="div" inset>
-      NFT Marketplace
-    </ListSubheader>
     <Link href="/" passHref>
       <ListItemButton>
         <ListItemIcon>
@@ -24,33 +22,9 @@ export const mainListItems = (
     <Link href="/my-tokens" passHref>
       <ListItemButton>
         <ListItemIcon>
-          <ShoppingCartIcon />
+          <AccountBox />
         </ListItemIcon>
         <ListItemText primary="My tokens" />
-      </ListItemButton>
-    </Link>
-  </React.Fragment>
-);
-
-export const secondaryListItems = (
-  <React.Fragment>
-    <ListSubheader component="div" inset>
-      Other Projects
-    </ListSubheader>
-    <Link href="/book-library" passHref>
-      <ListItemButton>
-        <ListItemIcon>
-          <MenuBook />
-        </ListItemIcon>
-        <ListItemText primary="Book Library" />
-      </ListItemButton>
-    </Link>
-    <Link href="/election" passHref>
-      <ListItemButton>
-        <ListItemIcon>
-          <HowToVote />
-        </ListItemIcon>
-        <ListItemText primary="Election" />
       </ListItemButton>
     </Link>
   </React.Fragment>

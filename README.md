@@ -23,4 +23,4 @@ If you want to change anything in the contract `../backend/contracts/NftMarketpl
 10. `$ graph codegen`
 11. `$ graph build`
 12. `$ graph deploy --studio nftmarketplace`
-13. Update the `graphUrl` in ../frontend/utils/util.ts
+13. Update the `graphUrl` in `../frontend/utils/util.ts`
