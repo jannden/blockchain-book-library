@@ -1,5 +1,9 @@
 {
-  "name": "library-contract-solidity-hardhat",
+  "name": "nft-marketplace",
+  "author": "Jan Cibulka",
+  "version": "1.0.0",
+  "description": "NFT Marketplace using The Graph built as a part of the Lime Academy challenge.",
+  "url": "https://github.com/jannden/nft-marketplace",
   "engines": {
     "node": ">=16.0.0"
   },
@@ -10,7 +14,6 @@
     "interact": "npx hardhat run --network localhost scripts/NftMarketplaceV2.interact.ts",
     "interact:rinkeby": "npx hardhat run --network rinkeby scripts/NftMarketplaceV2.interact.ts"
   },
-  "author": "Jan Cibulka",
   "license": "MIT",
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.6",

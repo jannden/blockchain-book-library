@@ -36,14 +36,6 @@ async function deployContract(contract: string) {
     );
     await contractInstance.deployed();
 
-    // Create contract instance of an already deployed contract using JSON import
-    // const BookLibrary = require('./artifacts/contracts/USElection.sol/USElection.json')
-    // const bookLibrary = new hre.ethers.Contract("....contractAddress.....", BookLibrary.abi, wallet);
-
-    // Create contract instance of an already deployed contract using hardhat contract factory (if the contract was compiled by Hardhat in the current project)
-    // const BookLibrary = await hre.ethers.getContractFactory("USElection");
-    // const bookLibrary = await BookLibrary.attach("0xc9707E1e496C12f1Fa83AFbbA8735DA697cdBf64");
-
     // Printing info: console.log and hre.run("print",...) can be used interchangeably
     await hre.run("print", {
       message: "Deployed successfully",
