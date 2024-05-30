@@ -2,18 +2,10 @@
   "name": "nft-marketplace-backend",
   "author": "Jan Cibulka",
   "version": "1.0.0",
-  "description": "NFT Marketplace using The Graph built as a part of the Lime Academy challenge.",
+  "description": "A comprehensive NFT ecosystem with smart contracts for minting, listing, buying, and selling NFTs. This project includes an ERC721 NFT collection contract and a marketplace contract.",
   "url": "https://github.com/jannden/nft-marketplace",
-  "private": true,
   "engines": {
-    "node": ">=16.0.0"
-  },
-  "scripts": {
-    "test": "npx hardhat test",
-    "deploy": "npx hardhat deploy --network localhost",
-    "deploy:sepolia": "npx hardhat deploy --network sepolia",
-    "interact": "npx hardhat run --network localhost scripts/NftMarketplaceV2.interact.ts",
-    "interact:sepolia": "npx hardhat run --network sepolia scripts/NftMarketplaceV2.interact.ts"
+    "node": ">=20.0.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
@@ -27,10 +19,10 @@
     "@types/node": "^20.12.13",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
-    "chai": "^5.1.1",
+    "chai": "^4.3.10",
     "dotenv": "^16.4.5",
+    "eslint": "8.57.0",
     "es6-promise": "^4.2.8",
-    "eslint": "^9.3.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-config-standard": "^17.1.0",
     "eslint-plugin-import": "^2.29.1",
