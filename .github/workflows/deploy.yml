@@ -23,6 +23,12 @@ jobs:
           cd frontend
           npm install
 
+      - name: Create .env file
+        run: |
+          echo "NEXT_PUBLIC_SERVER=${{ secrets.NEXT_PUBLIC_SERVER }}" >> .env
+          echo "INFURA_IPFS_ID=${{ secrets.INFURA_IPFS_ID }}" >> .env
+          echo "INFURA_IPFS_SECRET=${{ secrets.INFURA_IPFS_SECRET }}" >> .env
+
       - name: Build Frontend Next.js website
         run: |
           cd frontend
