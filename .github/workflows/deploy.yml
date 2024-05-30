@@ -13,18 +13,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Set up Node.js (and Bun)
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      - name: Install Bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          export BUN_INSTALL="$HOME/.bun"
+          export PATH="$BUN_INSTALL/bin:$PATH"
+
       - name: Install Frontend dependencies
         run: |
           cd frontend
-          npm install
+          bun install
 
       - name: Create .env file
         run: |
+          cd frontend
           echo "NEXT_PUBLIC_SERVER=${{ secrets.NEXT_PUBLIC_SERVER }}" >> .env
           echo "INFURA_IPFS_ID=${{ secrets.INFURA_IPFS_ID }}" >> .env
           echo "INFURA_IPFS_SECRET=${{ secrets.INFURA_IPFS_SECRET }}" >> .env
@@ -32,7 +39,7 @@ jobs:
       - name: Build Frontend Next.js website
         run: |
           cd frontend
-          npm run build
+          bun run build
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
