@@ -198,9 +198,9 @@ describe("NftMarketplaceV2", function () {
     await expect(
       collectionContract
         .connect(accounts[actor])
-        .approve(nftMarketplaceContract.address, tokenId)
+        .approve(nftMarketplaceContract.address, tokenId),
     ).to.be.revertedWith(
-      "ERC721: approve caller is not owner nor approved for all"
+      "ERC721: approve caller is not token owner or approved for all",
     );
   });
 
@@ -228,7 +228,7 @@ describe("NftMarketplaceV2", function () {
         .connect(accounts[actor])
         .listItem(collectionContract.address, tokenId, price, {
           value: listingFee,
-        })
+        }),
     ).to.be.revertedWith("Should be owner of the token.");
   });
 
@@ -246,7 +246,7 @@ describe("NftMarketplaceV2", function () {
         .connect(accounts[actor])
         .listItem(collectionContract.address, tokenId, price, {
           value: listingFee,
-        })
+        }),
     ).to.be.revertedWith("Price not set.");
   });
 
@@ -265,7 +265,7 @@ describe("NftMarketplaceV2", function () {
         .connect(accounts[actor])
         .listItem(collectionContract.address, tokenId, price, {
           value: 0,
-        })
+        }),
     ).to.be.revertedWith("Listing fee not met.");
   });
 
@@ -288,14 +288,14 @@ describe("NftMarketplaceV2", function () {
         .connect(accounts[actor])
         .listItem(collectionContract.address, tokenId, price, {
           value: listingFee,
-        })
+        }),
     )
       .to.emit(nftMarketplaceContract, "ItemListed")
       .withArgs(
         accounts[actor].address,
         collectionContract.address,
         tokenId,
-        price
+        price,
       );
   });
 
@@ -318,7 +318,7 @@ describe("NftMarketplaceV2", function () {
         .connect(accounts[actor])
         .listItem(collectionContract.address, tokenId, price, {
           value: listingFee,
-        })
+        }),
     ).to.be.revertedWith("Shouldn't be listed.");
   });
 
@@ -333,7 +333,7 @@ describe("NftMarketplaceV2", function () {
     await expect(
       nftMarketplaceContract
         .connect(accounts[actor])
-        .cancelListing(collectionContract.address, tokenId)
+        .cancelListing(collectionContract.address, tokenId),
     ).to.be.revertedWith("Caller isn't owner or nft contract.");
   });
 
@@ -344,7 +344,7 @@ describe("NftMarketplaceV2", function () {
     await expect(
       nftMarketplaceContract
         .connect(accounts[actor])
-        .cancelListing(collectionContract.address, tokenId)
+        .cancelListing(collectionContract.address, tokenId),
     )
       .to.emit(nftMarketplaceContract, "ItemCanceled")
       .withArgs(accounts[actor].address, collectionContract.address, tokenId);
@@ -357,7 +357,7 @@ describe("NftMarketplaceV2", function () {
     await expect(
       nftMarketplaceContract
         .connect(accounts[actor])
-        .cancelListing(collectionContract.address, tokenId)
+        .cancelListing(collectionContract.address, tokenId),
     ).to.be.revertedWith("Should be listed.");
   });
 
@@ -382,14 +382,14 @@ describe("NftMarketplaceV2", function () {
         .connect(accounts[actor])
         .listItem(collectionContract.address, tokenId, price, {
           value: listingFee,
-        })
+        }),
     )
       .to.emit(nftMarketplaceContract, "ItemListed")
       .withArgs(
         accounts[actor].address,
         collectionContract.address,
         tokenId,
-        price
+        price,
       );
 
     // Transferring the token outside of the marketplace
@@ -399,14 +399,14 @@ describe("NftMarketplaceV2", function () {
         .transferFrom(
           accounts[actor].address,
           accounts[actor2].address,
-          tokenId
-        )
+          tokenId,
+        ),
     )
       .to.emit(nftMarketplaceContract, "ItemCanceled")
       .withArgs(
         collectionContract.address,
         collectionContract.address,
-        tokenId
+        tokenId,
       );
   });
 
@@ -422,14 +422,20 @@ describe("NftMarketplaceV2", function () {
     await expect(
       nftMarketplaceContract
         .connect(accounts[actor])
-        .buyItem(collectionContract.address, tokenId, { value: price })
+        .buyItem(collectionContract.address, tokenId, { value: price }),
     ).to.be.revertedWith("Should be listed.");
   });
 
-  it("Should set token for sale again", async function () {
+  it("Should set token for sale again and credit marketplace owner", async function () {
     const tokenId = 1;
     const price = ethers.utils.parseEther("1");
     const actor = 1;
+
+    const provider = waffle.provider;
+    const marketplaceOwner = 0;
+    const balanceBefore = await provider.getBalance(
+      accounts[marketplaceOwner].address,
+    );
 
     const tx = await collectionContract
       .connect(accounts[actor])
@@ -445,15 +451,23 @@ describe("NftMarketplaceV2", function () {
         .connect(accounts[actor])
         .listItem(collectionContract.address, tokenId, price, {
           value: listingFee,
-        })
+        }),
     )
       .to.emit(nftMarketplaceContract, "ItemListed")
       .withArgs(
         accounts[actor].address,
         collectionContract.address,
         tokenId,
-        price
+        price,
       );
+
+    const balanceAfter = await provider.getBalance(
+      accounts[marketplaceOwner].address,
+    );
+
+    expect(Number(ethers.utils.formatEther(balanceBefore))).to.be.lessThan(
+      Number(ethers.utils.formatEther(balanceAfter)),
+    );
   });
 
   it("Should not sell for incorrect price", async function () {
@@ -464,62 +478,36 @@ describe("NftMarketplaceV2", function () {
     await expect(
       nftMarketplaceContract
         .connect(accounts[actor])
-        .buyItem(collectionContract.address, tokenId, { value: price })
+        .buyItem(collectionContract.address, tokenId, { value: price }),
     ).to.be.revertedWith("Price mismatch.");
   });
 
-  it("Should sell market item", async function () {
+  it("Should sell market item and credit the seller", async function () {
     const tokenId = 1;
     const price = ethers.utils.parseEther("1");
+    const seller = 1;
     const actor = 2;
+
+    const provider = waffle.provider;
+    const balanceBefore = await provider.getBalance(accounts[seller].address);
 
     await expect(
       nftMarketplaceContract
         .connect(accounts[actor])
-        .buyItem(collectionContract.address, tokenId, { value: price })
+        .buyItem(collectionContract.address, tokenId, { value: price }),
     )
       .to.emit(nftMarketplaceContract, "ItemBought")
       .withArgs(
         accounts[actor].address,
         collectionContract.address,
         tokenId,
-        price
+        price,
       );
-  });
 
-  xit("Should withdraw funds of seller", async function () {
-    const actor = 1;
-
-    const provider = waffle.provider;
-    const balanceBefore = await provider.getBalance(accounts[actor].address);
-
-    const tx = await nftMarketplaceContract
-      .connect(accounts[actor])
-      .withdrawFunds();
-    await tx.wait();
-
-    const balanceAfter = await provider.getBalance(accounts[actor].address);
+    const balanceAfter = await provider.getBalance(accounts[seller].address);
 
     expect(Number(ethers.utils.formatEther(balanceBefore))).to.be.lessThan(
-      Number(ethers.utils.formatEther(balanceAfter))
-    );
-  });
-
-  xit("Should withdraw funds of marketplace owner", async function () {
-    const actor = 0;
-
-    const provider = waffle.provider;
-    const balanceBefore = await provider.getBalance(accounts[actor].address);
-
-    const tx = await nftMarketplaceContract
-      .connect(accounts[actor])
-      .withdrawFunds();
-    await tx.wait();
-
-    const balanceAfter = await provider.getBalance(accounts[actor].address);
-
-    expect(Number(ethers.utils.formatEther(balanceBefore))).to.be.lessThan(
-      Number(ethers.utils.formatEther(balanceAfter))
+      Number(ethers.utils.formatEther(balanceAfter)),
     );
   });
 });
