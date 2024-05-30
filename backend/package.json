@@ -3,7 +3,8 @@
   "author": "Jan Cibulka",
   "version": "1.0.0",
   "description": "A comprehensive NFT ecosystem with smart contracts for minting, listing, buying, and selling NFTs. This project includes an ERC721 NFT collection contract and a marketplace contract.",
-  "url": "https://github.com/jannden/nft-marketplace",
+  "repository": "https://github.com/jannden/nft-marketplace",
+  "homepage": "https://jannden.github.io/nft-marketplace/",
   "engines": {
     "node": ">=20.0.0"
   },
