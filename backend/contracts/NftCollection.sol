@@ -48,12 +48,13 @@ contract NftCollection is
   function _afterTokenTransfer(
     address _from,
     address _to,
-    uint256 _tokenId
+    uint256 _tokenId,
+    uint256 amount
   ) internal virtual override(ERC721) {
     if (marketplace.listings(address(this), _tokenId) != 0) {
       marketplace.cancelListing(address(this), _tokenId);
     }
-    super._afterTokenTransfer(_from, _to, _tokenId);
+    super._afterTokenTransfer(_from, _to, _tokenId, amount);
   }
 
   // The following functions are overrides required by Solidity.
@@ -61,9 +62,10 @@ contract NftCollection is
   function _beforeTokenTransfer(
     address from,
     address to,
-    uint256 tokenId
+    uint256 tokenId,
+    uint256 amount
   ) internal override(ERC721, ERC721Enumerable) {
-    super._beforeTokenTransfer(from, to, tokenId);
+    super._beforeTokenTransfer(from, to, tokenId, amount);
   }
 
   function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
@@ -82,7 +84,7 @@ contract NftCollection is
   function supportsInterface(bytes4 interfaceId)
     public
     view
-    override(ERC721, ERC721Enumerable)
+    override(ERC721, ERC721Enumerable, ERC721URIStorage)
     returns (bool)
   {
     return super.supportsInterface(interfaceId);

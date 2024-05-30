@@ -4,9 +4,8 @@ import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import Backdrop from "@mui/material/Backdrop";
 import CircularProgress from "@mui/material/CircularProgress";
-import { ethers } from "ethers";
-import { useState, useRef, useEffect } from "react";
-import { doAccountsMatch, getCollectionContract, ipfs, ipfsPath } from "../utils/util";
+import { useState, useRef } from "react";
+import { doAccountsMatch, getCollectionContract, toBase64 } from "../utils/util";
 import { deployedNftMarketplace } from "../utils/deployedContracts";
 import useNftMarketplaceContract from "../hooks/useNftMarketplaceContract";
 import { formatEtherscanLink, shortenHex } from "../utils/util";
@@ -36,6 +35,7 @@ import useGraph from "../hooks/useGraph";
 import { grey } from "@mui/material/colors";
 import Typography from "@mui/material/Typography";
 import AccountError from "../components/AccountError";
+import { ethers } from "ethers";
 
 const MyTokens = () => {
   const { library, account, chainId } = useWeb3React<Web3Provider>();
@@ -133,13 +133,14 @@ const MyTokens = () => {
       inputs.nftSymbol,
       nftMarketplaceContract.address,
     ]);
+    console.log("Collection contract deployed at: ", collectionContract.address);
 
     // Storing collection address in the marketplace
     try {
       const tx = await nftMarketplaceContract.addCollection(collectionContract.address);
       setInfo({
         info: "Transaction pending...",
-        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        link: formatEtherscanLink("Transaction", [Number(tx.chainId) || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
       await tx.wait();
@@ -168,15 +169,21 @@ const MyTokens = () => {
     setDialogs(defaultDialogs);
     setInputs(defaultInputs);
 
-    try {
-      // Upload the image
-      const uploadedImage = await ipfs.add(image);
-      const imagePath = `${ipfsPath}/${uploadedImage.path}`;
+    const imageBase64 = await toBase64(image);
 
-      // Upload JSON Metadata
-      const metadata = { tokenName: inputs.tokenName, tokenImage: imagePath };
-      const uploadedMetadata = await ipfs.add(Buffer.from(JSON.stringify(metadata)));
-      const metadataPath = `${ipfsPath}/${uploadedMetadata.path}`;
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          image: imageBase64,
+          tokenName: inputs.tokenName,
+        }),
+      });
+
+      const { imagePath, metadataPath } = await response.json();
 
       // Preparing the contract
       const signer = library.getSigner(account);
@@ -186,7 +193,7 @@ const MyTokens = () => {
       const tx = await collectionContract.safeMint(account, metadataPath);
       setInfo({
         info: "Transaction pending...",
-        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        link: formatEtherscanLink("Transaction", [Number(tx.chainId) || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
       await tx.wait();
@@ -224,7 +231,7 @@ const MyTokens = () => {
       );
       setInfo({
         info: "Transaction pending...",
-        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        link: formatEtherscanLink("Transaction", [Number(tx.chainId) || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
       await tx.wait();
@@ -244,7 +251,7 @@ const MyTokens = () => {
       );
       setInfo({
         info: "Transaction pending...",
-        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        link: formatEtherscanLink("Transaction", [Number(tx.chainId) || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
       await tx.wait();
@@ -274,7 +281,7 @@ const MyTokens = () => {
       );
       setInfo({
         info: "Transaction pending...",
-        link: formatEtherscanLink("Transaction", [tx.chainId || chainId, tx.hash]),
+        link: formatEtherscanLink("Transaction", [Number(tx.chainId) || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
       await tx.wait();

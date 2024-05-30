@@ -1,17 +1,19 @@
 specVersion: 0.0.4
+description: NFT Marketplace
+repository: https://github.com/jannden/nft-marketplace
 schema:
   file: ./schema.graphql
 dataSources:
-  - kind: ethereum
+  - kind: ethereum/contract
     name: NftMarketplaceV2
-    network: rinkeby
+    network: sepolia
     source:
-      address: "0x409184162DFE669c7a89cF24C443a5772258Aea8"
+      address: "0xb0C95A36B54d02Ea5714518Fa3371C42D33EC132"
       abi: NftMarketplaceV2
-      startBlock: 10739645
+      startBlock: 6001700
     mapping:
       kind: ethereum/events
-      apiVersion: 0.0.5
+      apiVersion: 0.0.6
       language: wasm/assemblyscript
       entities:
         - ItemBought

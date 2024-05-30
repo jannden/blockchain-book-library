@@ -1,6 +1,7 @@
 import React from "react";
 import { Web3ReactProvider } from "@web3-react/core";
-import { createClient, Provider as UrqlProvider } from "urql";
+import { createClient, debugExchange, cacheExchange, fetchExchange } from "@urql/core";
+import { Provider as UrqlProvider } from "urql";
 import type { AppProps } from "next/app";
 import Head from "next/head";
 import getLibrary from "../utils/getLibrary";
@@ -8,7 +9,10 @@ import "../styles/globals.css";
 import Layout from "../components/Layout";
 import { graphUrl } from "../utils/util";
 
-const urqlClient = createClient({ url: graphUrl });
+const urqlClient = createClient({
+  url: graphUrl,
+  exchanges: [debugExchange, cacheExchange, fetchExchange],
+});
 
 function NextWeb3App({ Component, pageProps }: AppProps) {
   return (

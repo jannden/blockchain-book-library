@@ -3,10 +3,7 @@ import Link from "next/link";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import ListItemText from "@mui/material/ListItemText";
-import ListSubheader from "@mui/material/ListSubheader";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
-import HowToVote from "@mui/icons-material/HowToVote";
-import MenuBook from "@mui/icons-material/MenuBook";
 import { AccountBox } from "@mui/icons-material";
 
 export const mainListItems = (

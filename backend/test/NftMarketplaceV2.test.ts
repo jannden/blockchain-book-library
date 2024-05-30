@@ -3,7 +3,7 @@ import { ethers, waffle } from "hardhat";
 import { Contract, ContractFactory } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
-const collectionParams = ["Crypto Zombies", "CZ"];
+const collectionParams = ["Trees", "TR"];
 const ipfsPath = "ipfs_path";
 
 const setGlobals = async () => {

@@ -4,7 +4,7 @@ import {
   ItemListed as ItemListedEvent,
   CollectionAdded as CollectionAddedEvent,
 } from "../generated/NftMarketplaceV2/NftMarketplaceV2";
-import { NftCollection } from "../generated/NftCollection/NftCollection";
+import { NftCollection } from "../generated/NftMarketplaceV2/NftCollection";
 import { ItemBought, ItemCanceled, ItemListed, CollectionAdded } from "../generated/schema";
 
 export function handleItemBought(event: ItemBoughtEvent): void {

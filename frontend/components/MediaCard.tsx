@@ -8,7 +8,6 @@ import CardContent from "@mui/material/CardContent";
 import CardMedia from "@mui/material/CardMedia";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
-import Badge from "@mui/material/Badge";
 import { Link as MUILink } from "@mui/material";
 import { doAccountsMatch, parseBalance, shortenHex } from "../utils/util";
 import { DialogActionTypes, TokenMetadata, MediaCardProps } from "../utils/types";
@@ -24,24 +23,19 @@ export default function MediaCard({
   const [tokenMetadata, setTokenMetadata] = useState<TokenMetadata>();
 
   useEffect(() => {
-    let isSubscribed = true;
     const fetchMetadata = async () => {
+      setLoading(true);
+      const res = await fetch(tokenData.tokenUri);
       try {
-        setLoading(true);
-        const res = await fetch(tokenData.tokenUri);
         const metadata = await res.json();
-        if (isSubscribed) {
-          setTokenMetadata(metadata);
-        }
+        console.log("metadata->>>", metadata);
+        setTokenMetadata(metadata);
         setLoading(false);
       } catch (error) {
-        console.error(`Not JSON: ${tokenData.tokenUri}`);
+        console.error(`Error for ${tokenData.tokenUri}: ${error}`);
       }
     };
     fetchMetadata();
-    return () => {
-      isSubscribed = false;
-    };
   }, [tokenData.tokenUri]);
 
   if (loading) {
@@ -49,11 +43,11 @@ export default function MediaCard({
   }
   return (
     <Card sx={{ maxWidth: 345, backgroundColor: "white" }}>
-      <CardMedia component="img" height="140" image={tokenMetadata.tokenImage} />
+      <CardMedia component="img" height="140" image={tokenMetadata?.tokenImage} />
       <CardContent>
         <Typography variant="body2" color="text.secondary" align="center" component="div">
           <Typography gutterBottom variant="subtitle1" component="div">
-            {tokenMetadata.tokenName}
+            {tokenMetadata?.tokenName}
           </Typography>
           {!doAccountsMatch(tokenData.owner, account) && (
             <>

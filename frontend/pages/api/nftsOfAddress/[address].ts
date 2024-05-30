@@ -1,21 +1,33 @@
 import { ethers } from "ethers";
-import { createClient } from "urql";
-import {
-  graphUrl,
-  graphQuery,
-  getCollectionContract,
-  removeDuplicateTokens,
-  groupBy,
-} from "../../../utils/util";
+import { createClient, debugExchange, cacheExchange, fetchExchange } from "urql";
+import { graphUrl, graphQueryNew, getCollectionContract } from "../../../utils/util";
+
+const groupBy = (array: any[], key: string) => {
+  return array.reduce((result, currentValue) => {
+    (result[currentValue[key]] = result[currentValue[key]] || []).push(currentValue);
+    return result;
+  }, {});
+};
+
+const removeDuplicateTokens = (tokens: any[]) => {
+  return tokens.filter(
+    (item, index, self) =>
+      index ===
+      self.findIndex((t) => t.nftAddress === item.nftAddress && t.tokenId === item.tokenId)
+  );
+};
 
 export default async function handler({ query: { address } }, res) {
   const account = address;
 
   // Create connection to the Graph
-  const client = createClient({ url: graphUrl });
+  const urqlClient = createClient({
+    url: graphUrl,
+    exchanges: [debugExchange, cacheExchange, fetchExchange],
+  });
 
   // Extract data
-  const data = await client.query(graphQuery).toPromise();
+  const data = await urqlClient.query(graphQueryNew, undefined).toPromise();
   const { itemListeds, itemCanceleds, itemBoughts, collectionAddeds } = data.data;
 
   // Get items currently listed in the marketplace for purchase
@@ -59,7 +71,7 @@ export default async function handler({ query: { address } }, res) {
     const signer = jsonRpcProvider.getSigner(account);
     const collectionContract = await getCollectionContract(signer, collection.nftAddress, null);
     const tokenCount = await collectionContract.balanceOf(account);
-    for (let i = 0; i < tokenCount; i++) {
+    for (let i = 0; i < Number(tokenCount); i++) {
       const tokenId = (await collectionContract.tokenOfOwnerByIndex(account, i)).toNumber();
       if (
         mergedMarketplace.some(

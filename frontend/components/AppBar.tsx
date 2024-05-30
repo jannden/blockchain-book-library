@@ -1,17 +1,13 @@
 import * as React from "react";
-import { styled, createTheme } from "@mui/material/styles";
+import { styled } from "@mui/material/styles";
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
-import Badge from "@mui/material/Badge";
-import Link from "@mui/material/Link";
 import MenuIcon from "@mui/icons-material/Menu";
-import NotificationsIcon from "@mui/icons-material/Notifications";
 import { drawerWidth } from "./Drawer";
 import Account from "./Account";
 import useEagerConnect from "../hooks/useEagerConnect";
-import { useRouter } from "next/router";
 
 interface AppBarProps extends MuiAppBarProps {
   open?: boolean;
@@ -35,11 +31,8 @@ const StyledAppBar = styled(MuiAppBar, {
   }),
 }));
 
-const mdTheme = createTheme();
-
 function AppBar({ open, toggleDrawer, title }) {
   const triedToEagerConnect = useEagerConnect();
-  const { asPath } = useRouter();
   return (
     <StyledAppBar position="absolute" open={open}>
       <Toolbar

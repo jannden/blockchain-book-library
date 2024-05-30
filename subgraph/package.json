@@ -4,13 +4,13 @@
   "scripts": {
     "codegen": "graph codegen",
     "build": "graph build",
-    "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ nftmarketplace",
+    "deploy": "graph deploy --studio nft-marketplace-sepolia",
     "create-local": "graph create --node http://localhost:8020/ nftmarketplace",
     "remove-local": "graph remove --node http://localhost:8020/ nftmarketplace",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 nftmarketplace"
   },
   "dependencies": {
-    "@graphprotocol/graph-cli": "0.30.1",
-    "@graphprotocol/graph-ts": "0.27.0"
+    "@graphprotocol/graph-cli": "0.73.0",
+    "@graphprotocol/graph-ts": "0.35.1"
   }
 }

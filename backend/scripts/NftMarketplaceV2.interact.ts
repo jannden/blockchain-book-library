@@ -2,32 +2,37 @@ import * as dotenv from "dotenv";
 
 import { Contract } from "ethers";
 import hre, { ethers } from "hardhat";
-import { createClient } from "urql";
+import {
+  createClient,
+  debugExchange,
+  cacheExchange,
+  fetchExchange,
+} from "@urql/core";
 
 dotenv.config();
 
 const contractName = "NftMarketplaceV2";
-const rinkebyContractAddress = "0xd5fD20ee4Adc3c0A13f68800266c0b0687EBA0a0";
+const sepoliaContractAddress = "0xb0C95A36B54d02Ea5714518Fa3371C42D33EC132";
 const graphUrl =
-  "https://api.studio.thegraph.com/query/28136/nftmarketplace/0.0.4";
+  "https://api.studio.thegraph.com/query/28136/nft-marketplace-sepolia/version/latest";
 
 async function interact() {
   // The wallets
   const [alicesWallet, bobsWallet] = await ethers.getSigners();
   console.log(
     "Alice's balance is",
-    ethers.utils.formatEther(await alicesWallet.getBalance())
+    ethers.utils.formatEther(await alicesWallet.getBalance()),
   );
   console.log(
     "Bob's balance is",
-    ethers.utils.formatEther(await bobsWallet.getBalance())
+    ethers.utils.formatEther(await bobsWallet.getBalance()),
   );
 
   // Contract
   let contract: Contract;
-  if (hre.hardhatArguments.network === "rinkeby") {
+  if (hre.hardhatArguments.network === "sepolia") {
     const Contract = await ethers.getContractFactory(contractName);
-    contract = await Contract.attach(rinkebyContractAddress);
+    contract = await Contract.attach(sepoliaContractAddress);
   } else {
     // Redeploy to clean state
     const Contract = await ethers.getContractFactory(contractName);
@@ -69,8 +74,11 @@ async function interact() {
     }
   `;
 
-  const client = createClient({ url: graphUrl });
-  const data = await client.query(graphQuery).toPromise();
+  const urqlClient = createClient({
+    url: graphUrl,
+    exchanges: [debugExchange, cacheExchange, fetchExchange],
+  });
+  const data = await urqlClient.query(graphQuery, undefined).toPromise();
   const { itemListeds, itemCanceleds, itemBoughts } = data.data;
   const mergedFilter = [...itemCanceleds, ...itemBoughts];
   const currentItems = itemListeds.filter((el: any) => {

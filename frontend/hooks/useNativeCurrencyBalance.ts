@@ -3,24 +3,16 @@ import { useWeb3React } from "@web3-react/core";
 import useSWR from "swr";
 import useKeepSWRDataLiveAsBlocksArrive from "./useKeepSWRDataLiveAsBlocksArrive";
 
-function getNativeCurrencyBalance(library: Web3Provider) {
-  return async (_: string, address: string) => {
-    const balance = await library.getBalance(address);
+export default function useNativeCurrencyBalance(address: string) {
+  const { library, chainId } = useWeb3React<Web3Provider>();
 
-    return balance;
-  };
-}
-
-export default function useNativeCurrencyBalance(address: string, suspense = false) {
-  const { library, chainId } = useWeb3React();
-
-  const shouldFetch = typeof address === "string" && !!library;
+  const shouldFetch = typeof address === "string" && !!library?.ready;
 
   const result = useSWR(
     shouldFetch ? ["NativeCurrencyBalance", address, chainId] : null,
-    getNativeCurrencyBalance(library),
-    {
-      suspense,
+    async ([_tag, address, _chainId]) => {
+      if (!address) return 0;
+      return await library.getBalance(address);
     }
   );
 

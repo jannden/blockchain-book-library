@@ -29,9 +29,7 @@ export default function useMetaMaskOnboarding() {
   }, []);
 
   async function startOnboarding() {
-    const MetaMaskOnboarding = await import("@metamask/onboarding").then(
-      (m) => m.default
-    );
+    const MetaMaskOnboarding = await import("@metamask/onboarding").then((m) => m.default);
 
     onboarding.current = new MetaMaskOnboarding();
 
@@ -44,6 +42,7 @@ export default function useMetaMaskOnboarding() {
     }
   }
 
+  // @ts-ignore
   const isWeb3Available = typeof window !== "undefined" && window?.ethereum;
 
   return {

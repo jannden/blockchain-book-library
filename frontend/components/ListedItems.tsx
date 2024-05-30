@@ -3,7 +3,7 @@ import { useWeb3React } from "@web3-react/core";
 import Grid from "@mui/material/Grid";
 import Paper from "@mui/material/Paper";
 import { doAccountsMatch } from "../utils/util";
-import { formatEtherscanLink, shortenHex } from "../utils/util";
+import { shortenHex } from "../utils/util";
 import Box from "@mui/material/Box";
 import MediaCard from "../components/MediaCard";
 import { grey } from "@mui/material/colors";
@@ -12,9 +12,22 @@ const ListedItems = (props: any) => {
   const { transactionInProgress, handlePurchase, graphData } = props;
   const { account } = useWeb3React<Web3Provider>();
 
+  const nothingAvailable =
+    graphData.collectionsList?.length === 0 ||
+    graphData.collectionsList?.every(({ tokens }) =>
+      tokens.every(
+        (tokenData) => doAccountsMatch(tokenData.owner, account) || Number(tokenData.price) === 0
+      )
+    );
+
   return (
     <Grid container spacing={3}>
       <Grid item lg={12}>
+        {nothingAvailable && (
+          <Paper sx={{ padding: 3, backgroundColor: grey[50] }}>
+            <h3>No listed items</h3>
+          </Paper>
+        )}
         {graphData.collectionsList?.length > 0 &&
           graphData.collectionsList.map(
             ({ nftAddress, tokens, collectionName }) =>

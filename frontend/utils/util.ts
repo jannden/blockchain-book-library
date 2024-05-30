@@ -1,9 +1,14 @@
 import type { BigNumberish } from "@ethersproject/bignumber";
 import { formatUnits } from "@ethersproject/units";
-import type { JsonRpcSigner } from "@ethersproject/providers";
-import { ethers } from "ethers";
+import { BaseContract, ethers } from "ethers";
 import nftCollectionFactory from "../contracts/NftCollection.json";
-import { create as createIpsf, IPFSHTTPClient } from "ipfs-http-client";
+import { NftCollection } from "../contracts/types";
+import type { JsonRpcSigner } from "@ethersproject/providers";
+
+export interface CollectionContract extends BaseContract {
+  safeMint: (...args: any[]) => Promise<ethers.ContractTransaction>;
+  // Define other methods here
+}
 
 export function shortenHex(hex: string, length = 4) {
   return `${hex.substring(0, length + 2)}…${hex.substring(hex.length - length)}`;
@@ -11,10 +16,7 @@ export function shortenHex(hex: string, length = 4) {
 
 const ETHERSCAN_PREFIXES = {
   1: "",
-  3: "ropsten.",
-  4: "rinkeby.",
-  5: "goerli.",
-  42: "kovan.",
+  11155111: "sepolia.",
 };
 
 export function formatEtherscanLink(type: "Account" | "Transaction", data: [number, string]) {
@@ -39,21 +41,18 @@ export interface Networks {
 
 export const walletConnectSupportedNetworks: Networks = {
   1: "https://ethereumnode.defiterm.io",
-  3: "https://ethereumnode.defiterm-dev.net",
+  11155111: "https://ethereumnode.defiterm-dev.net",
 };
 
-export const supportedMetamaskNetworks = [1, 3, 4, 5, 42];
+export const supportedMetamaskNetworks = [1, 11155111];
 
-export const ipfs: IPFSHTTPClient = createIpsf({
-  url: "https://ipfs.infura.io:5001",
-});
-export const ipfsPath = "https://ipfs.infura.io/ipfs";
+export const ipfsPath = "https://ipfs.io/ipfs";
 
 export const getCollectionContract = async (
   signer: JsonRpcSigner,
   contractAddress?: string,
   args?: any[]
-): Promise<ethers.Contract> => {
+): Promise<NftCollection> => {
   const Factory = new ethers.ContractFactory(
     nftCollectionFactory.abi,
     nftCollectionFactory.bytecode,
@@ -61,11 +60,11 @@ export const getCollectionContract = async (
   );
   if (contractAddress) {
     const collectionContract = Factory.attach(contractAddress);
-    return collectionContract;
+    return collectionContract as NftCollection;
   }
   const collectionContract = await Factory.deploy(...(args || []));
   await collectionContract.deployed();
-  return collectionContract;
+  return collectionContract as NftCollection;
 };
 
 export const doAccountsMatch = (account1: string, account2: string) => {
@@ -73,7 +72,9 @@ export const doAccountsMatch = (account1: string, account2: string) => {
 };
 
 // The Graph
-export const graphUrl = "https://api.studio.thegraph.com/query/28136/nftmarketplace/v1.3";
+export const graphUrl =
+  "https://api.studio.thegraph.com/query/28136/nft-marketplace-sepolia/version/latest";
+
 export const graphQueryNew = `
     query getUserCollections($address: Bytes) {
       itemListeds(orderBy: timestamp, orderDirection: desc) {
@@ -110,3 +111,12 @@ export const graphQueryNew = `
       }
     }
   `;
+
+export function toBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = (error) => reject(error);
+  });
+}

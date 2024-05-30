@@ -1,6 +1,8 @@
 import hre, { ethers } from "hardhat";
 
 async function deployContract(contract: string) {
+  console.log("Deploying contract: ", contract);
+
   try {
     await hre.run("compile", {
       message: "Compiled successfully",
@@ -12,27 +14,27 @@ async function deployContract(contract: string) {
     // Set the provider for localhost
     // const provider = new hre.ethers.providers.JsonRpcProvider("http://localhost:8545");
 
-    // Set the provider for Rinkeby
-    // const provider = new hre.ethers.providers.InfuraProvider("rinkeby", "40c2813049e44ec79cb4d7e0d18de173")
+    // Set the provider for Sepolia
+    // const provider = new hre.ethers.providers.InfuraProvider("...network...", "...infuraKey...")
 
     // Set the wallet through provider
-    // const wallet = new hre.ethers.Wallet("....privateKey.....", provider);
+    // const wallet = new hre.ethers.Wallet("...privateKey...", provider);
 
     // Set the wallet through hardhat.config.ts
     const [wallet] = await ethers.getSigners();
 
     // Deployer info
     console.log(
-      `Deploying contract ${contract} with the account: ${wallet.address}`
+      `Deploying contract ${contract} with the account: ${wallet.address}`,
     );
 
     // Deploy and create contract instance of a contract using JSON import
-    // HOW ???
+    // TODO
 
     // Deploy and create contract instance of a contract using hardhat contract factory (if the contract was compiled by Hardhat in the current project)
     const ContractFactory = await ethers.getContractFactory(contract);
     const contractInstance = await ContractFactory.deploy(
-      ...(constructorArgs[contract] || [])
+      ...(constructorArgs?.[contract] || []),
     );
     await contractInstance.deployed();
 
@@ -43,7 +45,7 @@ async function deployContract(contract: string) {
     console.log("Contract deployed to:", contractInstance.address);
 
     // Verifying contract on EtherScan.io
-    if (hre.hardhatArguments.network === "rinkeby") {
+    if (hre.hardhatArguments.network === "sepolia") {
       await contractInstance.deployTransaction.wait(6);
       await hre.run("verify:verify", {
         address: contractInstance.address,

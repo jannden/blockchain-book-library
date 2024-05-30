@@ -20,7 +20,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 });
 
-const defaultContract = "NftMarketplace";
+const defaultContract = "NftMarketplaceV2";
 
 task("deploy", "Deploys contract on a provided network")
   .addOptionalParam("contract", "The contract to deploy", defaultContract)
@@ -52,8 +52,8 @@ const config: HardhatCustomConfig = {
     },
   },
   networks: {
-    rinkeby: {
-      url: process.env.RINKEBY_URL || "",
+    sepolia: {
+      url: process.env.SEPOLIA_URL || "",
       accounts: [
         process.env.PRIVATE_KEY_1 || "",
         process.env.PRIVATE_KEY_2 || "",
