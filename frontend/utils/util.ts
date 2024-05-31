@@ -62,8 +62,11 @@ export const getCollectionContract = async (
     const collectionContract = Factory.attach(contractAddress);
     return collectionContract as NftCollection;
   }
+  console.log("Deploying new contract for collection");
   const collectionContract = await Factory.deploy(...(args || []));
+  console.log("Deployed, waiting for confirmation");
   await collectionContract.deployed();
+  console.log("Deployment confirmed and done!");
   return collectionContract as NftCollection;
 };
 
