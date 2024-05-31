@@ -46,12 +46,15 @@ async function deployContract(contract: string) {
 
     // Verifying contract on EtherScan.io
     if (hre.hardhatArguments.network === "sepolia") {
+      console.log("Verifying contract on EtherScan...");
       await contractInstance.deployTransaction.wait(6);
       await hre.run("verify:verify", {
         address: contractInstance.address,
         constructorArguments: [...(constructorArgs[contract] || [])],
       });
     }
+
+    console.log("Done with deployment!");
   } catch (error) {
     console.error(error);
     process.exitCode = 1;

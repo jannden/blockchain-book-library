@@ -46,7 +46,7 @@ contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
   mapping(address => address[]) public nfts;
 
   /// @notice Marketplace fee
-  uint256 public listingFee = 0.01 ether;
+  uint256 public listingFee = 0.0001 ether;
 
   /////////////////////
   //    Modifiers    //

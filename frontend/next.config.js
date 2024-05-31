@@ -6,7 +6,4 @@
 module.exports = {
   reactStrictMode: true,
   swcMinify: true,
-  output: "export",
-  basePath: process.env.NODE_ENV === "production" ? "/nft-marketplace" : "",
-  assetPrefix: process.env.NODE_ENV === "production" ? "/nft-marketplace" : "",
 };

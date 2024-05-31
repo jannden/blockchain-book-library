@@ -16,28 +16,26 @@ This project consists of a backend, frontend, and subgraph to create a comprehen
 - **Cancel Listings:** Cancel your NFT listings.
 
 ## Setup
-Follow the setup instructions in each of the subdirectories in this order: `backend`, `subgraph`, and `frontend`.
+### Follow the setup instructions in each of the subdirectories in this order: `backend`, `subgraph`, and `frontend`.
 
-## Example workflow when updating contracts
-
-### NftMarketplaceV2 contract
+#### Example workflow when updating the NftMarketplaceV2 contract
 If you want to change anything in the contract `backend/contracts/NftMarketplaceV2.sol`, you have to follow these steps:
 
 1. `$ cd backend`
 2. Update the contract
-3. `$ npx hardhat deploy --network sepolia --contract NftMarketplaceV2`
+3. `$ bunx hardhat deploy --network sepolia --contract NftMarketplaceV2`
 4. Copy the contract's deployed address to: `frontend/utils/deployedContracts.ts` and to `subgraph/subgraph.yaml`
 5. Copy the whole file from `backend/artifacts/contracts/NftMarketplaceV2.sol/NftMarketplaceV2.json` to `frontend/contracts`
 6. Copy just the ABI array from `backend/artifacts/contracts/NftMarketplaceV2.sol/NftMarketplaceV2.json` to `subgraph/abis/NftMarketplaceV2.json`
 7. `$ cd ../frontend`
-8. `$ npm run compile-contract-types`
+8. `$ bun run compile-contract-types`
 9. `$ cd ../subgraph`
 10. `$ graph codegen`
 11. `$ graph build`
 12. `$ graph deploy --studio <YOUR_SUBGRAPH_NAME>`
 13. Update the `graphUrl` in `frontend/utils/util.ts`
 
-### NftCollection contract
+#### Example workflow when updating the NftCollection contract
 
 1. Update the `NftCollection.sol` contract in `backend/contracts`.
 2. Run `$ npx hardhat compile`.
