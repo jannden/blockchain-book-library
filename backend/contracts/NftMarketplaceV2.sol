@@ -10,6 +10,8 @@ interface IERC721Ownable is IERC721 {
 }
 
 contract NftMarketplaceV2 is ReentrancyGuard, Ownable {
+  constructor() Ownable() {}
+
   /////////////////////
   //     Events      //
   /////////////////////

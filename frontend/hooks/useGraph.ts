@@ -89,9 +89,15 @@ export default function useGraph(address, listedOnly) {
       // Enhance the listed items with owner property
       for (const [index, token] of uniqueListedItems.entries()) {
         const collectionContract = await getCollectionContract(signer, token.nftAddress, null);
+        console.log("uniqueListedItems, enhancing with owner", collectionContract);
         if (!collectionContract || !token.tokenId) continue;
-        const owner = await collectionContract.ownerOf(token.tokenId);
-        uniqueListedItems[index].owner = owner;
+        let owner = null;
+        try {
+          owner = await collectionContract.ownerOf(token.tokenId);
+          uniqueListedItems[index].owner = owner;
+        } catch (e) {
+          console.log("Error getting owner of token", e);
+        }
       }
 
       // Update the tokens list
