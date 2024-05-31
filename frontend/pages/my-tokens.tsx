@@ -169,9 +169,13 @@ const MyTokens = () => {
 
   const mintToken = async () => {
     // Checking user input
-    const image = tokenImage.current?.files?.[0];
+    const image = tokenImage.current?.files?.[0] as File;
     if (!image || !inputs.tokenName) {
       setInfo({ error: "Fill out the fields." });
+      return;
+    }
+    if (image.size > 100 * 1024) {
+      setInfo({ error: "Ensure the image is less than 100KB." });
       return;
     }
     setInfo({});
