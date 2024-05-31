@@ -4,8 +4,8 @@ This project consists of a backend, frontend, and subgraph to create a comprehen
 
 ## Project Structure
 
-- **Backend:** Smart contracts for the NFT collection and marketplace.
-- **Frontend:** Next.js application for interacting with the smart contracts.
+- **Backend:** Smart contracts written in Solidity with a Hardhat setup.
+- **Frontend:** Next.js application for interaction with the smart contracts and IPFS.
 - **Subgraph:** Subgraph using The Graph to gather blockchain data.
 
 ## Features
@@ -17,6 +17,12 @@ This project consists of a backend, frontend, and subgraph to create a comprehen
 
 ## Setup
 ### Follow the setup instructions in each of the subdirectories in this order: `backend`, `subgraph`, and `frontend`.
+
+### Preview:
+https://github.com/jannden/nft-marketplace/assets/78412925/30c3063c-e9e2-496e-bb39-3279fe54c4c0
+
+## Workflow
+Check out the instructions in each subdirectory (`backend`, `subgraph`, and `frontend`) for more details.
 
 #### Example workflow when updating the NftMarketplaceV2 contract
 If you want to change anything in the contract `backend/contracts/NftMarketplaceV2.sol`, you have to follow these steps:
