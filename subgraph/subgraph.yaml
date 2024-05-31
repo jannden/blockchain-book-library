@@ -8,7 +8,7 @@ dataSources:
     name: NftMarketplaceV2
     network: sepolia
     source:
-      address: "0x8Af6DD7577606a0F44DA97880E0e80D862788D26"
+      address: "0xfC26e44dE0f25903c796b39EEDC17a8c07e30Dc6"
       abi: NftMarketplaceV2
       startBlock: 6001700
     mapping:

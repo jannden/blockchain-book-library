@@ -2,5 +2,5 @@
 
 export const deployedNftMarketplace = {
   name: "NftMarketplaceV2",
-  address: "0x8Af6DD7577606a0F44DA97880E0e80D862788D26",
+  address: "0xfC26e44dE0f25903c796b39EEDC17a8c07e30Dc6",
 };
