@@ -20,6 +20,8 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogContentText from "@mui/material/DialogContentText";
 import DialogTitle from "@mui/material/DialogTitle";
 import MediaCard from "../components/MediaCard";
+import nftCollectionFactory from "../contracts/NftCollection.json";
+import { NftCollection } from "../contracts/types";
 import {
   InfoType,
   Inputs,
@@ -125,21 +127,29 @@ const MyTokens = () => {
 
     // Preparing the contract
     setInfo({
-      info: "Deploying...",
+      info: "Deploying new collection...",
     });
     const signer = library.getSigner(account);
-    const collectionContract = await getCollectionContract(signer, null, [
+    const Factory = new ethers.ContractFactory(
+      nftCollectionFactory.abi,
+      nftCollectionFactory.bytecode,
+      signer
+    );
+    console.log("Deploying the contract for the collection");
+    const collectionContract = await Factory.deploy([
       inputs.nftName,
       inputs.nftSymbol,
       nftMarketplaceContract.address,
     ]);
+    console.log("Deployed, waiting for confirmation");
+    await collectionContract.deployed();
     console.log("Collection contract deployed at: ", collectionContract.address);
 
     // Storing collection address in the marketplace
     try {
       const tx = await nftMarketplaceContract.addCollection(collectionContract.address);
       setInfo({
-        info: "Transaction pending...",
+        info: "Storing collection address in the marketplace...",
         link: formatEtherscanLink("Transaction", [Number(tx.chainId) || chainId, tx.hash]),
         hash: shortenHex(tx.hash),
       });
