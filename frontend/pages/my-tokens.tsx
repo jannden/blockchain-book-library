@@ -136,11 +136,11 @@ const MyTokens = () => {
       signer
     );
     console.log("Deploying the contract for the collection");
-    const collectionContract = await Factory.deploy([
+    const collectionContract = await Factory.deploy(
       inputs.nftName,
       inputs.nftSymbol,
-      nftMarketplaceContract.address,
-    ]);
+      nftMarketplaceContract.address
+    );
     console.log("Deployed, waiting for confirmation");
     await collectionContract.deployed();
     console.log("Collection contract deployed at: ", collectionContract.address);

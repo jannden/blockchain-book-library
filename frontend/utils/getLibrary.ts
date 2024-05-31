@@ -4,7 +4,5 @@ import { Web3Provider } from "@ethersproject/providers";
 export default function getLibrary(
   provider: ExternalProvider | JsonRpcFetchFunc
 ) {
-  // Sepolia:
-  const network: Networkish = 11155111;
-  return new Web3Provider(provider, network);
+  return new Web3Provider(provider);
 }
